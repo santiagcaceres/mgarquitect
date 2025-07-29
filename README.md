@@ -6,7 +6,16 @@ Sitio web moderno y responsive para MG Arquitectura, con un panel de administrac
 
 ### 🔄 Modo Demo (Actual)
 - ✅ **Funciona sin configuración** - Perfecto para preview
-- ✅ **Datos de eje
+- ✅ **Datos de ejemplo** incluidos
+- ✅ **Todas las funcionalidades** visibles
+- ⚠️ **Sin persistencia** - Los cambios no se guardan
+
+### 🚀 Modo Producción (Después de configurar Supabase)
+- ✅ **Base de datos real** con Supabase
+- ✅ **Persistencia completa** de datos
+- ✅ **Panel admin funcional** al 100%
+- ✅ **Subida de imágenes** real
+
 ## 🚀 GUÍA PASO A PASO PARA DEPLOY
 
 ### PASO 1: Descargar y Preparar

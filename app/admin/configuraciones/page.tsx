@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Plus, Trash2, Upload, X } from "lucide-react"
 import Image from "next/image"
 import { toast } from "sonner"
-import { heroService } from "@/lib/supabase-production"
+import { heroService } from "@/lib/supabase"
 
 interface HeroSlideForm {
   title: string
