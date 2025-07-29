@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Plus, Trash2, Upload, X } from "lucide-react"
+import { Plus, Trash2, X } from "lucide-react"
 import Image from "next/image"
 import { toast } from "sonner"
 import { heroService } from "@/lib/supabase"
@@ -31,6 +31,7 @@ export default function ConfiguracionesPage() {
   const loadSlides = async () => {
     try {
       setIsLoading(true)
+      console.log("🔄 Cargando slides del banner...")
       const data = await heroService.getHeroSlides()
       const formattedSlides = data.map((slide, index) => ({
         title: slide.title,
@@ -39,6 +40,7 @@ export default function ConfiguracionesPage() {
         order: index + 1,
       }))
       setSlides(formattedSlides.length > 0 ? formattedSlides : getDefaultSlides())
+      console.log("✅ Slides cargados:", formattedSlides.length)
     } catch (error) {
       console.error("Error loading slides:", error)
       setSlides(getDefaultSlides())
@@ -129,10 +131,12 @@ export default function ConfiguracionesPage() {
         order: slide.order,
       }))
 
+      console.log("💾 Guardando slides:", slidesToSave.length)
       await heroService.updateHeroSlides(slidesToSave)
       toast.success("Configuración del banner guardada exitosamente")
+      console.log("✅ Slides guardados correctamente")
     } catch (error) {
-      console.error("Error saving slides:", error)
+      console.error("❌ Error saving slides:", error)
       toast.error("Error al guardar la configuración")
     } finally {
       setIsSaving(false)
@@ -206,17 +210,13 @@ export default function ConfiguracionesPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Imagen del Slide</Label>
-                    <div className="flex items-center gap-4">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageUpload(index, e)}
-                        disabled={isSaving}
-                        className="flex-1"
-                      />
-                      <Upload className="h-5 w-5 text-gray-500" />
-                    </div>
+                    <Label>URL de la Imagen</Label>
+                    <Input
+                      value={slide.image_url}
+                      onChange={(e) => updateSlide(index, "image_url", e.target.value)}
+                      placeholder="https://ejemplo.com/imagen.jpg"
+                      disabled={isSaving}
+                    />
                     {slide.image_url && (
                       <div className="relative inline-block mt-2">
                         <Image

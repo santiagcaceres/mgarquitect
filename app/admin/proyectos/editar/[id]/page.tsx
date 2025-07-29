@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import { projectsService, type Project } from "@/lib/supabase"
+import { createOrUpdateProject } from "@/app/actions/projects"
 
 export default function EditarProyectoPage() {
   const params = useParams()
@@ -26,7 +27,6 @@ export default function EditarProyectoPage() {
     year: "",
     location: "",
     area: "",
-    coverImage: "",
   })
 
   useEffect(() => {
@@ -44,7 +44,6 @@ export default function EditarProyectoPage() {
             year: projectData.year,
             location: projectData.location,
             area: projectData.area,
-            coverImage: projectData.project_images?.find((img) => img.is_cover)?.image_url || "",
           })
         } else {
           toast.error("Proyecto no encontrado")
@@ -79,19 +78,25 @@ export default function EditarProyectoPage() {
         return
       }
 
-      // Actualizar el proyecto
-      const updatedData = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        category: formData.category.trim(),
-        year: formData.year,
-        location: formData.location.trim(),
-        area: formData.area.trim(),
-      }
+      // Crear FormData para usar la misma función que funciona
+      const form = new FormData()
+      form.append("id", project.id)
+      form.append("title", formData.title.trim())
+      form.append("description", formData.description.trim())
+      form.append("category", formData.category.trim())
+      form.append("year", formData.year)
+      form.append("location", formData.location.trim())
+      form.append("area", formData.area.trim())
 
-      await projectsService.updateProject(project.id, updatedData)
-      toast.success("Proyecto actualizado exitosamente")
-      router.push("/admin/proyectos")
+      console.log("🔄 Actualizando proyecto usando createOrUpdateProject...")
+      const result = await createOrUpdateProject(form)
+
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        toast.success("Proyecto actualizado exitosamente")
+        router.push("/admin/proyectos")
+      }
     } catch (error) {
       console.error("Error updating project:", error)
       toast.error("Error al actualizar el proyecto")
