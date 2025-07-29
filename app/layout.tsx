@@ -75,13 +75,6 @@ export const metadata: Metadata = {
   category: "architecture",
   classification: "Business",
   referrer: "origin-when-cross-origin",
-  colorScheme: "light",
-  themeColor: "#000000",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 5,
-  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
