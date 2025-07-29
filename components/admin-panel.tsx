@@ -110,6 +110,7 @@ export function AdminPanel() {
   })
 
   const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
 
   const showNotification = (message: string, type: "success" | "error" | "info") => {
     setNotification({ message, type, isVisible: true })
@@ -199,7 +200,7 @@ export function AdminPanel() {
       )
       setProjects(updatedProjects)
       localStorage.setItem("mg-arquitectura-projects", JSON.stringify(updatedProjects))
-      showNotification(`Proyecto ${newStatus === "published" ? "publicado" : "guardado como borrador"}`, "info")
+      showNotification(`Proyecto ${newStatus === "published" ? "publicado" : "ocultado"}`, "success")
     }
   }
 
@@ -294,6 +295,7 @@ export function AdminPanel() {
                         <button
                           onClick={() => toggleProjectStatus(project.id)}
                           className="px-3 py-1 text-sm rounded border border-gray-300 text-black bg-white hover:bg-gray-50"
+                          disabled={isLoading}
                         >
                           {project.status === "published" ? "Ocultar" : "Publicar"}
                         </button>

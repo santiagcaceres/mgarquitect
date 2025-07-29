@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, Upload, X, Plus, Trash2 } from "lucide-react"
+import { ArrowLeft, X, Plus, Trash2 } from "lucide-react"
 import Image from "next/image"
 import { LoadingScreen } from "@/components/loading-screen"
 
@@ -32,19 +32,19 @@ const defaultHeroSettings: HeroSettings = {
       id: "1",
       title: "Diseño de Interiores",
       description: "Espacios funcionales y estéticamente atractivos",
-      image: "/placeholder.svg?height=800&width=1200&text=Diseño+de+Interiores",
+      image: "https://images.unsplash.com/photo-1618220179428-22790b461013?q=80&w=2127&auto=format&fit=crop",
     },
     {
       id: "2",
       title: "Relevamiento Topográfico",
       description: "Medición precisa de terrenos y niveles",
-      image: "/placeholder.svg?height=800&width=1200&text=Relevamiento+Topográfico",
+      image: "https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?q=80&w=2070&auto=format&fit=crop",
     },
     {
       id: "3",
       title: "Arquitectura Residencial",
       description: "Viviendas modernas y funcionales",
-      image: "/placeholder.svg?height=800&width=1200&text=Arquitectura+Residencial",
+      image: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?q=80&w=1974&auto=format&fit=crop",
     },
   ],
 }
@@ -112,6 +112,8 @@ export default function ConfigurarBannerPage() {
     if (formData.projects.length > 1) {
       const newProjects = formData.projects.filter((_, i) => i !== index)
       setFormData({ ...formData, projects: newProjects })
+    } else {
+      alert("Debe haber al menos un slide en el banner")
     }
   }
 
@@ -250,18 +252,15 @@ export default function ConfigurarBannerPage() {
                     </div>
 
                     <div>
-                      <Label className="text-gray-700 font-medium">Imagen del Slide</Label>
+                      <Label className="text-gray-700 font-medium">URL de la Imagen del Slide</Label>
                       <div className="space-y-4">
-                        <div className="flex items-center gap-4">
-                          <Input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleImageUpload(e, index)}
-                            className="bg-white border-gray-300 text-gray-800"
-                            disabled={isSaving}
-                          />
-                          <Upload className="h-5 w-5 text-gray-500" />
-                        </div>
+                        <Input
+                          value={project.image}
+                          onChange={(e) => updateProject(index, "image", e.target.value)}
+                          className="bg-white border-gray-300 text-gray-800 focus:border-black focus:ring-black"
+                          placeholder="https://ejemplo.com/imagen.jpg"
+                          disabled={isSaving}
+                        />
                         {project.image && (
                           <div className="relative inline-block">
                             <Image

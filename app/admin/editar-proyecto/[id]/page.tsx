@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, Upload, X } from "lucide-react"
-import Image from "next/image"
+import { ArrowLeft, Info } from "lucide-react"
 import { LoadingScreen } from "@/components/loading-screen"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface Project {
   id: string
@@ -20,9 +20,8 @@ interface Project {
   year: string
   location: string
   area: string
-  images: string[]
   coverImage: string
-  status: "draft" | "published"
+  status: "published"
   createdAt: string
   updatedAt: string
 }
@@ -31,6 +30,7 @@ export default function EditarProyectoPage() {
   const router = useRouter()
   const params = useParams()
   const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [project, setProject] = useState<Project | null>(null)
   const [formData, setFormData] = useState({
     title: "",
@@ -39,9 +39,7 @@ export default function EditarProyectoPage() {
     location: "",
     area: "",
     year: "",
-    images: [] as string[],
     coverImage: "",
-    status: "published" as "draft" | "published",
   })
 
   useEffect(() => {
@@ -67,9 +65,7 @@ export default function EditarProyectoPage() {
           location: foundProject.location,
           area: foundProject.area,
           year: foundProject.year,
-          images: foundProject.images,
           coverImage: foundProject.coverImage,
-          status: foundProject.status,
         })
       } else {
         router.push("/admin")
@@ -80,34 +76,15 @@ export default function EditarProyectoPage() {
     setIsLoading(false)
   }, [router, params.id])
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isCover = false) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        const imageUrl = event.target?.result as string
-        if (isCover) {
-          setFormData({ ...formData, coverImage: imageUrl })
-        } else {
-          setFormData({ ...formData, images: [...formData.images, imageUrl] })
-        }
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  const removeImage = (index: number) => {
-    const newImages = formData.images.filter((_, i) => i !== index)
-    setFormData({ ...formData, images: newImages })
-  }
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setIsSaving(true)
 
     if (!project) return
 
-    if (!formData.title.trim() || !formData.description.trim()) {
-      alert("El título y la descripción son requeridos")
+    if (!formData.title.trim() || !formData.description.trim() || !formData.category.trim()) {
+      alert("Por favor, completa todos los campos obligatorios (*)")
+      setIsSaving(false)
       return
     }
 
@@ -135,6 +112,7 @@ export default function EditarProyectoPage() {
       router.push("/admin")
     } catch (error) {
       alert("Error al actualizar el proyecto. Inténtalo de nuevo.")
+      setIsSaving(false)
     }
   }
 
@@ -144,9 +122,24 @@ export default function EditarProyectoPage() {
 
   if (!project) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Proyecto no encontrado</h1>
+      <div className="min-h-screen bg-gray-100">
+        <div className="bg-white shadow-sm border-b">
+          <div className="max-w-6xl mx-auto px-4 py-4">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                onClick={() => router.push("/admin")}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Volver al Panel
+              </Button>
+              <h1 className="text-2xl font-bold text-gray-800">Proyecto no encontrado</h1>
+            </div>
+          </div>
+        </div>
+        <div className="container mx-auto px-4 py-12 text-center">
+          <p className="text-gray-600 mb-8">El proyecto que buscas no existe o ha sido eliminado.</p>
           <Button onClick={() => router.push("/admin")} className="btn-black">
             Volver al Panel
           </Button>
@@ -164,16 +157,52 @@ export default function EditarProyectoPage() {
               variant="ghost"
               onClick={() => router.push("/admin")}
               className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
+              disabled={isSaving}
             >
               <ArrowLeft className="h-4 w-4" />
               Volver al Panel
             </Button>
-            <h1 className="text-2xl font-bold text-gray-800">Editar Proyecto: {project.title}</h1>
+            <h1 className="text-2xl font-bold text-gray-800">Editar: {project.title}</h1>
           </div>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto p-6">
+        {/* Información sobre imágenes */}
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-800">
+              <Info className="h-5 w-5" />
+              Información Importante sobre Imágenes
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-blue-700 space-y-2">
+            <p>
+              <strong>Tamaños recomendados:</strong>
+            </p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li>
+                <strong>Imagen principal:</strong> 1200x800 píxeles (proporción 3:2)
+              </li>
+              <li>
+                <strong>Peso máximo:</strong> 2MB por imagen
+              </li>
+              <li>
+                <strong>Formatos aceptados:</strong> JPG, PNG, WebP
+              </li>
+            </ul>
+            <p>
+              <strong>Consejos:</strong>
+            </p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li>Usa imágenes de alta calidad y bien iluminadas</li>
+              <li>Evita imágenes borrosas o pixeladas</li>
+              <li>Las imágenes horizontales funcionan mejor</li>
+              <li>Puedes usar servicios gratuitos de hosting de imágenes para obtener las URLs</li>
+            </ul>
+          </CardContent>
+        </Card>
+
         <div className="bg-white rounded-lg shadow-lg p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
@@ -187,6 +216,7 @@ export default function EditarProyectoPage() {
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   required
                   className="bg-gray-50 border-gray-300 text-gray-800 focus:border-black focus:ring-black"
+                  disabled={isSaving}
                 />
               </div>
               <div>
@@ -199,6 +229,7 @@ export default function EditarProyectoPage() {
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   required
                   className="bg-gray-50 border-gray-300 text-gray-800 focus:border-black focus:ring-black"
+                  disabled={isSaving}
                 />
               </div>
             </div>
@@ -214,11 +245,12 @@ export default function EditarProyectoPage() {
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   required
                   className="bg-gray-50 border-gray-300 text-gray-800 focus:border-black focus:ring-black"
+                  disabled={isSaving}
                 />
               </div>
               <div>
                 <Label htmlFor="area" className="text-gray-700 font-medium">
-                  Área (m²) *
+                  Área *
                 </Label>
                 <Input
                   id="area"
@@ -226,6 +258,7 @@ export default function EditarProyectoPage() {
                   onChange={(e) => setFormData({ ...formData, area: e.target.value })}
                   required
                   className="bg-gray-50 border-gray-300 text-gray-800 focus:border-black focus:ring-black"
+                  disabled={isSaving}
                 />
               </div>
               <div>
@@ -238,13 +271,14 @@ export default function EditarProyectoPage() {
                   onChange={(e) => setFormData({ ...formData, year: e.target.value })}
                   required
                   className="bg-gray-50 border-gray-300 text-gray-800 focus:border-black focus:ring-black"
+                  disabled={isSaving}
                 />
               </div>
             </div>
 
             <div>
               <Label htmlFor="description" className="text-gray-700 font-medium">
-                Descripción *
+                Descripción del Proyecto *
               </Label>
               <Textarea
                 id="description"
@@ -252,83 +286,40 @@ export default function EditarProyectoPage() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 required
                 className="bg-gray-50 border-gray-300 text-gray-800 min-h-32 focus:border-black focus:ring-black"
+                disabled={isSaving}
               />
             </div>
 
             <div>
-              <Label className="text-gray-700 font-medium">Imagen Principal *</Label>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageUpload(e, true)}
-                    className="bg-gray-50 border-gray-300 text-gray-800"
-                  />
-                  <Upload className="h-5 w-5 text-gray-500" />
-                </div>
-                {formData.coverImage && (
-                  <div className="relative inline-block">
-                    <Image
-                      src={formData.coverImage || "/placeholder.svg"}
-                      alt="Cover preview"
-                      width={200}
-                      height={120}
-                      className="rounded object-cover border"
-                    />
-                    <button
-                      type="button"
-                      className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full bg-red-600 text-white flex items-center justify-center hover:bg-red-700"
-                      onClick={() => setFormData({ ...formData, coverImage: "" })}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-gray-700 font-medium">Imágenes Adicionales</Label>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageUpload(e, false)}
-                    className="bg-gray-50 border-gray-300 text-gray-800"
-                  />
-                  <Upload className="h-5 w-5 text-gray-500" />
-                </div>
-                <div className="grid grid-cols-4 gap-4">
-                  {formData.images.map((image, index) => (
-                    <div key={index} className="relative">
-                      <Image
-                        src={image || "/placeholder.svg"}
-                        alt={`Gallery ${index + 1}`}
-                        width={100}
-                        height={80}
-                        className="rounded object-cover border w-full h-20"
-                      />
-                      <button
-                        type="button"
-                        className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full bg-red-600 text-white flex items-center justify-center hover:bg-red-700"
-                        onClick={() => removeImage(index)}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <Label htmlFor="coverImage" className="text-gray-700 font-medium">
+                URL de la Imagen Principal *
+              </Label>
+              <Input
+                id="coverImage"
+                value={formData.coverImage}
+                onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
+                required
+                className="bg-gray-50 border-gray-300 text-gray-800 focus:border-black focus:ring-black"
+                disabled={isSaving}
+              />
+              <p className="text-sm text-gray-500 mt-2">
+                Pega aquí la URL de la imagen principal del proyecto. Puedes subir la imagen a cualquier servicio de
+                hosting de imágenes gratuito.
+              </p>
             </div>
 
             <div className="flex justify-end gap-4 pt-6 border-t">
-              <Button type="button" variant="outline" onClick={() => router.push("/admin")} className="px-6 py-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.push("/admin")}
+                className="px-6 py-2"
+                disabled={isSaving}
+              >
                 Cancelar
               </Button>
-              <Button type="submit" className="btn-black px-6 py-2">
-                Actualizar Proyecto
+              <Button type="submit" className="btn-black px-6 py-2" disabled={isSaving}>
+                {isSaving ? "Actualizando..." : "Actualizar Proyecto"}
               </Button>
             </div>
           </form>
