@@ -101,6 +101,23 @@ export default function ConfiguracionesPage() {
     }
   }
 
+  const moveSlide = (index: number, direction: "up" | "down") => {
+    const newSlides = [...slides]
+    const targetIndex = direction === "up" ? index - 1 : index + 1
+
+    if (targetIndex >= 0 && targetIndex < slides.length) {
+      // Intercambiar slides
+      ;[newSlides[index], newSlides[targetIndex]] = [newSlides[targetIndex], newSlides[index]]
+
+      // Actualizar el orden
+      newSlides.forEach((slide, i) => {
+        slide.order = i + 1
+      })
+
+      setSlides(newSlides)
+    }
+  }
+
   const updateSlide = (index: number, field: keyof HeroSlideForm, value: string) => {
     const newSlides = [...slides]
     newSlides[index] = { ...newSlides[index], [field]: value }
@@ -247,10 +264,28 @@ export default function ConfiguracionesPage() {
                   <div className="flex justify-between items-center mb-4">
                     <h4 className="font-semibold text-lg">Slide {index + 1}</h4>
                     {slides.length > 1 && (
-                      <Button variant="destructive" size="sm" onClick={() => removeSlide(index)} disabled={isSaving}>
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Eliminar
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => moveSlide(index, "up")}
+                          disabled={isSaving || index === 0}
+                        >
+                          ↑
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => moveSlide(index, "down")}
+                          disabled={isSaving || index === slides.length - 1}
+                        >
+                          ↓
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => removeSlide(index)} disabled={isSaving}>
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Eliminar
+                        </Button>
+                      </div>
                     )}
                   </div>
 

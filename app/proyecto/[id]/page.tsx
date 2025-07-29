@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Image from "next/image"
-import { MapPin, Home, Ruler, Phone, Mail, Calendar, ArrowLeft } from "lucide-react"
+import { MapPin, Home, Ruler, Phone, Mail, Calendar, ArrowLeft, X } from "lucide-react"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { LoadingScreen } from "@/components/loading-screen"
@@ -15,6 +15,8 @@ export default function ProyectoPage() {
   const params = useParams()
   const [project, setProject] = useState<Project | null>(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false)
+  const [modalImageUrl, setModalImageUrl] = useState("")
   const [isLoading, setIsLoading] = useState(true)
 
   const handleLoadingComplete = () => {
@@ -51,6 +53,34 @@ export default function ProyectoPage() {
     const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     window.location.href = mailtoLink
   }
+
+  const openImageModal = (imageUrl: string) => {
+    setModalImageUrl(imageUrl)
+    setIsImageModalOpen(true)
+  }
+
+  const closeImageModal = () => {
+    setIsImageModalOpen(false)
+    setModalImageUrl("")
+  }
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        closeImageModal()
+      }
+    }
+
+    if (isImageModalOpen) {
+      document.addEventListener("keydown", handleEsc)
+      document.body.style.overflow = "hidden"
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEsc)
+      document.body.style.overflow = "unset"
+    }
+  }, [isImageModalOpen])
 
   if (isLoading) {
     return <LoadingScreen onLoadingComplete={handleLoadingComplete} />
@@ -97,14 +127,21 @@ export default function ProyectoPage() {
         <div className="container mx-auto px-4 pb-16">
           <div className="grid lg:grid-cols-2 gap-16">
             <div className="space-y-6">
-              <div className="relative">
+              <div
+                className="relative cursor-pointer"
+                onClick={() => openImageModal(displayImages[currentImageIndex]?.image_url || "/placeholder.svg")}
+              >
                 <Image
                   src={displayImages[currentImageIndex]?.image_url || "/placeholder.svg"}
                   alt={project.title}
                   width={800}
                   height={600}
-                  className="w-full h-96 object-cover rounded-lg shadow-lg"
+                  className="w-full h-96 object-cover rounded-lg shadow-lg hover:opacity-90 transition-opacity"
                 />
+                <div className="absolute bottom-4 left-4 bg-black/70 text-white px-3 py-1 rounded-lg text-sm">
+                  <span className="hidden md:inline">Click para ampliar</span>
+                  <span className="md:hidden">Toca para ampliar</span>
+                </div>
               </div>
 
               {displayImages.length > 1 && (
@@ -112,8 +149,11 @@ export default function ProyectoPage() {
                   {displayImages.map((image, index) => (
                     <button
                       key={index}
-                      onClick={() => setCurrentImageIndex(index)}
-                      className={`relative h-20 rounded-lg overflow-hidden transition-all duration-200 ${
+                      onClick={() => {
+                        setCurrentImageIndex(index)
+                        openImageModal(image.image_url || "/placeholder.svg")
+                      }}
+                      className={`relative h-20 rounded-lg overflow-hidden transition-all duration-200 cursor-pointer ${
                         currentImageIndex === index ? "ring-2 ring-black shadow-lg" : "hover:shadow-md"
                       }`}
                     >
@@ -199,6 +239,32 @@ export default function ProyectoPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de imagen ampliada */}
+      {isImageModalOpen && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={closeImageModal}>
+          <div className="relative max-w-7xl max-h-full">
+            <Image
+              src={modalImageUrl || "/placeholder.svg"}
+              alt={project.title}
+              width={1200}
+              height={800}
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              onClick={closeImageModal}
+              className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 text-white rounded-full p-2 transition-colors"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-lg text-sm">
+              <span className="hidden md:inline">Presiona ESC o click fuera para cerrar</span>
+              <span className="md:hidden">Toca fuera de la imagen para cerrar</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>
