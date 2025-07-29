@@ -51,6 +51,11 @@ export function HeroSlider() {
         <div className="text-center text-white">
           <h1 className="text-4xl md:text-6xl font-bold mb-4">MG ARQUITECTURA</h1>
           <p className="text-lg md:text-xl text-white/90">Desarrollo integral de proyectos arquitectónicos</p>
+          <div className="mt-8 p-4 bg-yellow-600/20 rounded-lg border border-yellow-500/30">
+            <p className="text-yellow-200 text-sm">
+              📝 Configura los slides del banner desde el panel de administración
+            </p>
+          </div>
         </div>
       </section>
     )

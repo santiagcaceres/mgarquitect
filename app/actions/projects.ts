@@ -6,11 +6,13 @@ import { supabaseAdmin } from "@/lib/supabase"
 // Función para subir imagen a Supabase Storage
 async function uploadImage(file: File, projectId: string): Promise<string> {
   if (!supabaseAdmin) {
-    throw new Error("Supabase no configurado")
+    throw new Error("Supabase no configurado - Verifica las variables de entorno")
   }
 
   const fileExt = file.name.split(".").pop()
   const fileName = `${projectId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+
+  console.log("📤 Subiendo imagen:", fileName)
 
   const { data, error } = await supabaseAdmin.storage.from("project-images").upload(fileName, file, {
     cacheControl: "3600",
@@ -18,19 +20,23 @@ async function uploadImage(file: File, projectId: string): Promise<string> {
   })
 
   if (error) {
-    console.error("Error uploading image:", error)
+    console.error("❌ Error uploading image:", error)
     throw new Error(`Error al subir imagen: ${error.message}`)
   }
 
   const { data: urlData } = supabaseAdmin.storage.from("project-images").getPublicUrl(fileName)
+  console.log("✅ Imagen subida exitosamente:", urlData.publicUrl)
 
   return urlData.publicUrl
 }
 
 // Crear o actualizar proyecto
 export async function createOrUpdateProject(formData: FormData) {
+  console.log("🚀 Iniciando createOrUpdateProject...")
+
   if (!supabaseAdmin) {
-    return { error: "Supabase no configurado. Usando modo demo." }
+    console.error("❌ Supabase Admin no configurado")
+    return { error: "Supabase no configurado. Verifica las variables de entorno en Vercel." }
   }
 
   try {
@@ -42,10 +48,21 @@ export async function createOrUpdateProject(formData: FormData) {
     const area = formData.get("area") as string
     const projectId = formData.get("id") as string | null
 
+    console.log("📋 Datos del formulario:", { title, category, year, location, area, projectId })
+
     // Validaciones
-    if (!title?.trim()) return { error: "El título es requerido" }
-    if (!description?.trim()) return { error: "La descripción es requerida" }
-    if (!category?.trim()) return { error: "La categoría es requerida" }
+    if (!title?.trim()) {
+      console.error("❌ Título requerido")
+      return { error: "El título es requerido" }
+    }
+    if (!description?.trim()) {
+      console.error("❌ Descripción requerida")
+      return { error: "La descripción es requerida" }
+    }
+    if (!category?.trim()) {
+      console.error("❌ Categoría requerida")
+      return { error: "La categoría es requerida" }
+    }
 
     const projectData = {
       title: title.trim(),
@@ -60,21 +77,31 @@ export async function createOrUpdateProject(formData: FormData) {
 
     // Crear o actualizar proyecto
     if (currentProjectId) {
-      // Actualizar proyecto existente
+      console.log("🔄 Actualizando proyecto existente:", currentProjectId)
       const { error } = await supabaseAdmin.from("projects").update(projectData).eq("id", currentProjectId)
 
-      if (error) throw new Error(`Error al actualizar proyecto: ${error.message}`)
+      if (error) {
+        console.error("❌ Error al actualizar proyecto:", error)
+        throw new Error(`Error al actualizar proyecto: ${error.message}`)
+      }
+      console.log("✅ Proyecto actualizado exitosamente")
     } else {
-      // Crear nuevo proyecto
+      console.log("🆕 Creando nuevo proyecto...")
       const { data, error } = await supabaseAdmin.from("projects").insert([projectData]).select("id").single()
 
-      if (error) throw new Error(`Error al crear proyecto: ${error.message}`)
+      if (error) {
+        console.error("❌ Error al crear proyecto:", error)
+        throw new Error(`Error al crear proyecto: ${error.message}`)
+      }
       currentProjectId = data.id
+      console.log("✅ Proyecto creado exitosamente:", currentProjectId)
     }
 
     // Manejar imagen de portada
     const coverImage = formData.get("coverImage") as File
     if (coverImage && coverImage.size > 0) {
+      console.log("📸 Procesando imagen de portada...")
+
       // Eliminar imagen de portada anterior si existe
       if (projectId) {
         await supabaseAdmin.from("project_images").delete().eq("project_id", currentProjectId).eq("is_cover", true)
@@ -89,33 +116,42 @@ export async function createOrUpdateProject(formData: FormData) {
           image_url: imageUrl,
           is_cover: true,
           order: 0,
-          file_name: coverImage.name,
-          file_size: coverImage.size,
         },
       ])
 
-      if (imageError) throw new Error(`Error al guardar imagen: ${imageError.message}`)
+      if (imageError) {
+        console.error("❌ Error al guardar imagen:", imageError)
+        throw new Error(`Error al guardar imagen: ${imageError.message}`)
+      }
+      console.log("✅ Imagen de portada guardada")
     }
 
     // Manejar imágenes adicionales
     const otherImages = formData.getAll("otherImages") as File[]
-    for (const file of otherImages) {
-      if (file && file.size > 0) {
-        const imageUrl = await uploadImage(file, currentProjectId)
+    if (otherImages.length > 0) {
+      console.log("📸 Procesando imágenes adicionales:", otherImages.length)
 
-        const { error: imageError } = await supabaseAdmin.from("project_images").insert([
-          {
-            project_id: currentProjectId,
-            image_url: imageUrl,
-            is_cover: false,
-            order: 1,
-            file_name: file.name,
-            file_size: file.size,
-          },
-        ])
+      for (let i = 0; i < otherImages.length; i++) {
+        const file = otherImages[i]
+        if (file && file.size > 0) {
+          const imageUrl = await uploadImage(file, currentProjectId)
 
-        if (imageError) throw new Error(`Error al guardar imagen adicional: ${imageError.message}`)
+          const { error: imageError } = await supabaseAdmin.from("project_images").insert([
+            {
+              project_id: currentProjectId,
+              image_url: imageUrl,
+              is_cover: false,
+              order: i + 1,
+            },
+          ])
+
+          if (imageError) {
+            console.error("❌ Error al guardar imagen adicional:", imageError)
+            throw new Error(`Error al guardar imagen adicional: ${imageError.message}`)
+          }
+        }
       }
+      console.log("✅ Imágenes adicionales guardadas")
     }
 
     // Revalidar páginas
@@ -123,17 +159,21 @@ export async function createOrUpdateProject(formData: FormData) {
     revalidatePath("/proyectos")
     revalidatePath("/")
 
+    console.log("🎉 Proceso completado exitosamente")
     return { success: true, projectId: currentProjectId }
   } catch (error: any) {
-    console.error("Error in createOrUpdateProject:", error)
+    console.error("❌ Error in createOrUpdateProject:", error)
     return { error: error.message || "Error desconocido" }
   }
 }
 
 // Eliminar proyecto
 export async function deleteProject(projectId: string) {
+  console.log("🗑️ Iniciando eliminación de proyecto:", projectId)
+
   if (!supabaseAdmin) {
-    return { error: "Supabase no configurado" }
+    console.error("❌ Supabase Admin no configurado")
+    return { error: "Supabase no configurado. Verifica las variables de entorno." }
   }
 
   try {
@@ -143,10 +183,14 @@ export async function deleteProject(projectId: string) {
     // Eliminar proyecto (las imágenes se eliminan automáticamente por CASCADE)
     const { error } = await supabaseAdmin.from("projects").delete().eq("id", projectId)
 
-    if (error) throw new Error(`Error al eliminar proyecto: ${error.message}`)
+    if (error) {
+      console.error("❌ Error al eliminar proyecto:", error)
+      throw new Error(`Error al eliminar proyecto: ${error.message}`)
+    }
 
     // Eliminar archivos del storage
     if (images && images.length > 0) {
+      console.log("🗑️ Eliminando imágenes del storage:", images.length)
       for (const image of images) {
         const fileName = image.image_url.split("/").pop()
         if (fileName) {
@@ -159,9 +203,10 @@ export async function deleteProject(projectId: string) {
     revalidatePath("/proyectos")
     revalidatePath("/")
 
+    console.log("✅ Proyecto eliminado exitosamente")
     return { success: true }
   } catch (error: any) {
-    console.error("Error deleting project:", error)
+    console.error("❌ Error deleting project:", error)
     return { error: error.message || "Error al eliminar proyecto" }
   }
 }
