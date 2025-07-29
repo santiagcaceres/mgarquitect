@@ -7,16 +7,19 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Plus, Trash2, X } from "lucide-react"
+import { Plus, Trash2, X, Upload, Info } from "lucide-react"
 import Image from "next/image"
 import { toast } from "sonner"
 import { heroService } from "@/lib/supabase"
+import { updateHeroSlides } from "@/app/actions/hero-slides"
 
 interface HeroSlideForm {
   title: string
   description: string
   image_url: string
   order: number
+  newImage?: File | null
+  imagePreview?: string
 }
 
 export default function ConfiguracionesPage() {
@@ -38,6 +41,8 @@ export default function ConfiguracionesPage() {
         description: slide.description,
         image_url: slide.image_url,
         order: index + 1,
+        newImage: null,
+        imagePreview: undefined,
       }))
       setSlides(formattedSlides.length > 0 ? formattedSlides : getDefaultSlides())
       console.log("✅ Slides cargados:", formattedSlides.length)
@@ -54,20 +59,23 @@ export default function ConfiguracionesPage() {
     {
       title: "Diseño de Interiores",
       description: "Espacios funcionales y estéticamente atractivos",
-      image_url: "https://images.unsplash.com/photo-1618220179428-22790b461013?q=80&w=2127&auto=format&fit=crop",
+      image_url: "/images/diseno-interiores.jpg",
       order: 1,
+      newImage: null,
     },
     {
       title: "Arquitectura Residencial",
       description: "Viviendas modernas que inspiran",
-      image_url: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?q=80&w=1974&auto=format&fit=crop",
+      image_url: "/images/arquitectura-residencial.jpg",
       order: 2,
+      newImage: null,
     },
     {
       title: "Proyectos Comerciales",
       description: "Diseño innovador para tu negocio",
-      image_url: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2232&auto=format&fit=crop",
+      image_url: "/images/arquitectura-comercial.jpg",
       order: 3,
+      newImage: null,
     },
   ]
 
@@ -77,6 +85,7 @@ export default function ConfiguracionesPage() {
       description: "",
       image_url: "",
       order: slides.length + 1,
+      newImage: null,
     }
     setSlides([...slides, newSlide])
   }
@@ -101,13 +110,28 @@ export default function ConfiguracionesPage() {
   const handleImageUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      const newSlides = [...slides]
+      newSlides[index].newImage = file
+
+      // Crear preview
       const reader = new FileReader()
       reader.onload = (event) => {
-        const imageUrl = event.target?.result as string
-        updateSlide(index, "image_url", imageUrl)
+        newSlides[index].imagePreview = event.target?.result as string
+        setSlides([...newSlides])
       }
       reader.readAsDataURL(file)
     }
+  }
+
+  const removeImage = (index: number) => {
+    const newSlides = [...slides]
+    newSlides[index].newImage = null
+    newSlides[index].imagePreview = undefined
+    setSlides(newSlides)
+
+    // Limpiar el input
+    const input = document.getElementById(`image-${index}`) as HTMLInputElement
+    if (input) input.value = ""
   }
 
   const handleSave = async () => {
@@ -121,20 +145,35 @@ export default function ConfiguracionesPage() {
         return
       }
 
-      // Preparar datos para Supabase
-      const slidesToSave = validSlides.map((slide) => ({
+      // Crear FormData
+      const formData = new FormData()
+
+      // Agregar datos de slides
+      const slidesData = validSlides.map((slide) => ({
         title: slide.title,
         description: slide.description,
-        image_url:
-          slide.image_url ||
-          "https://images.unsplash.com/photo-1618220179428-22790b461013?q=80&w=2127&auto=format&fit=crop",
+        image_url: slide.image_url,
         order: slide.order,
       }))
 
-      console.log("💾 Guardando slides:", slidesToSave.length)
-      await heroService.updateHeroSlides(slidesToSave)
-      toast.success("Configuración del banner guardada exitosamente")
-      console.log("✅ Slides guardados correctamente")
+      formData.append("slidesData", JSON.stringify(slidesData))
+
+      // Agregar imágenes
+      validSlides.forEach((slide, index) => {
+        if (slide.newImage) {
+          formData.append(`image_${index}`, slide.newImage)
+        }
+      })
+
+      console.log("💾 Guardando slides...")
+      const result = await updateHeroSlides(formData)
+
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        toast.success("Configuración del banner guardada exitosamente")
+        loadSlides() // Recargar para mostrar las nuevas imágenes
+      }
     } catch (error) {
       console.error("❌ Error saving slides:", error)
       toast.error("Error al guardar la configuración")
@@ -155,6 +194,35 @@ export default function ConfiguracionesPage() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Configuraciones</h1>
 
+      {/* Información sobre imágenes */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-blue-800">
+            <Info className="h-5 w-5" />
+            Información sobre Imágenes del Banner
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-blue-700 space-y-2">
+          <p>
+            <strong>Subida de archivos locales:</strong>
+          </p>
+          <ul className="list-disc list-inside space-y-1 ml-4">
+            <li>
+              <strong>Formatos aceptados:</strong> JPG, PNG, WebP
+            </li>
+            <li>
+              <strong>Tamaño máximo:</strong> 5MB por imagen
+            </li>
+            <li>
+              <strong>Resolución recomendada:</strong> 1920x1080 píxeles (formato panorámico)
+            </li>
+            <li>
+              <strong>Uso:</strong> Estas imágenes se mostrarán como fondo del banner principal
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Banner Principal</CardTitle>
@@ -166,7 +234,7 @@ export default function ConfiguracionesPage() {
         <CardContent className="space-y-6">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Slides del Banner ({slides.length})</h3>
-            <Button onClick={addSlide} className="bg-black hover:bg-gray-800 text-white">
+            <Button onClick={addSlide} className="bg-black hover:bg-gray-800 text-white" disabled={isSaving}>
               <Plus className="w-4 h-4 mr-2" />
               Agregar Slide
             </Button>
@@ -210,30 +278,42 @@ export default function ConfiguracionesPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>URL de la Imagen</Label>
-                    <Input
-                      value={slide.image_url}
-                      onChange={(e) => updateSlide(index, "image_url", e.target.value)}
-                      placeholder="https://ejemplo.com/imagen.jpg"
-                      disabled={isSaving}
-                    />
-                    {slide.image_url && (
+                    <Label>Imagen del Slide</Label>
+                    <div className="flex items-center gap-4">
+                      <Input
+                        id={`image-${index}`}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(index, e)}
+                        disabled={isSaving}
+                        className="flex-1"
+                      />
+                      <Upload className="h-5 w-5 text-gray-500" />
+                    </div>
+
+                    {/* Mostrar imagen actual o preview */}
+                    {(slide.imagePreview || slide.image_url) && (
                       <div className="relative inline-block mt-2">
                         <Image
-                          src={slide.image_url || "/placeholder.svg"}
+                          src={slide.imagePreview || slide.image_url || "/placeholder.svg"}
                           alt={`Slide ${index + 1}`}
-                          width={200}
-                          height={120}
+                          width={300}
+                          height={180}
                           className="rounded object-cover border"
                         />
                         <button
                           type="button"
                           className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full bg-red-600 text-white flex items-center justify-center hover:bg-red-700"
-                          onClick={() => updateSlide(index, "image_url", "")}
+                          onClick={() => removeImage(index)}
                           disabled={isSaving}
                         >
                           <X className="h-3 w-3" />
                         </button>
+                        {slide.imagePreview && (
+                          <div className="absolute bottom-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded">
+                            Nueva imagen
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
