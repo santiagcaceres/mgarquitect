@@ -2,78 +2,165 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Briefcase, Star, Layers } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { Button } from "@/components/ui/button"
+import { Briefcase, Settings, Plus, BarChart3 } from "lucide-react"
+import Link from "next/link"
+import { projectsService, testConnection } from "@/lib/supabase"
 
-interface Stats {
-  totalProjects: number
-  featuredProjects: number
-  categories: number
-}
-
-export default function DashboardPage() {
-  const [stats, setStats] = useState<Stats | null>(null)
+export default function AdminDashboard() {
+  const [stats, setStats] = useState({
+    totalProjects: 0,
+    publishedProjects: 0,
+    draftProjects: 0,
+  })
+  const [connectionStatus, setConnectionStatus] = useState<{
+    success: boolean
+    message: string
+  } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function loadStats() {
-      setLoading(true)
+    async function loadDashboardData() {
       try {
-        const { data: projects, error } = await supabase.from("projects").select("category, is_featured")
+        // Probar conexión
+        const connection = await testConnection()
+        setConnectionStatus(connection)
 
-        if (error) throw error
+        // Cargar estadísticas
+        const allProjects = await projectsService.getAllProjects()
+        const publishedProjects = await projectsService.getPublishedProjects()
 
-        const totalProjects = projects.length
-        const featuredProjects = projects.filter((p) => p.is_featured).length
-        const categories = new Set(projects.map((p) => p.category)).size
-
-        setStats({ totalProjects, featuredProjects, categories })
+        setStats({
+          totalProjects: allProjects.length,
+          publishedProjects: publishedProjects.length,
+          draftProjects: allProjects.length - publishedProjects.length,
+        })
       } catch (error) {
-        console.error("Error loading stats:", error)
+        console.error("Error loading dashboard data:", error)
+        setConnectionStatus({
+          success: false,
+          message: "Error al cargar los datos del dashboard",
+        })
       } finally {
         setLoading(false)
       }
     }
-    loadStats()
+
+    loadDashboardData()
   }, [])
 
   if (loading) {
-    return <div className="text-center">Cargando estadísticas...</div>
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <Link href="/admin/proyectos/nuevo">
+          <Button className="bg-black hover:bg-gray-800 text-white">
+            <Plus className="mr-2 h-4 w-4" />
+            Nuevo Proyecto
+          </Button>
+        </Link>
+      </div>
+
+      {/* Estado de la conexión */}
+      {connectionStatus && (
+        <Card className={connectionStatus.success ? "border-green-200 bg-green-50" : "border-yellow-200 bg-yellow-50"}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full ${connectionStatus.success ? "bg-green-500" : "bg-yellow-500"}`} />
+              <span className={connectionStatus.success ? "text-green-800" : "text-yellow-800"}>
+                {connectionStatus.message}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Estadísticas */}
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Proyectos</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Proyectos</CardTitle>
             <Briefcase className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalProjects ?? "..."}</div>
+            <div className="text-2xl font-bold">{stats.totalProjects}</div>
+            <p className="text-xs text-muted-foreground">Todos los proyectos</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Proyectos Destacados</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Publicados</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.featuredProjects ?? "..."}</div>
+            <div className="text-2xl font-bold">{stats.publishedProjects}</div>
+            <p className="text-xs text-muted-foreground">Visibles en el sitio</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Categorías</CardTitle>
-            <Layers className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Borradores</CardTitle>
+            <Settings className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.categories ?? "..."}</div>
+            <div className="text-2xl font-bold">{stats.draftProjects}</div>
+            <p className="text-xs text-muted-foreground">En desarrollo</p>
           </CardContent>
         </Card>
       </div>
-      {/* Aquí se pueden agregar más componentes, como proyectos recientes, etc. */}
+
+      {/* Acciones rápidas */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Gestión de Proyectos</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Link href="/admin/proyectos">
+              <Button variant="outline" className="w-full justify-start bg-transparent">
+                <Briefcase className="mr-2 h-4 w-4" />
+                Ver Todos los Proyectos
+              </Button>
+            </Link>
+            <Link href="/admin/proyectos/nuevo">
+              <Button variant="outline" className="w-full justify-start bg-transparent">
+                <Plus className="mr-2 h-4 w-4" />
+                Crear Nuevo Proyecto
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Configuración del Sitio</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Link href="/admin/configuraciones">
+              <Button variant="outline" className="w-full justify-start bg-transparent">
+                <Settings className="mr-2 h-4 w-4" />
+                Configurar Banner Principal
+              </Button>
+            </Link>
+            <Link href="/" target="_blank">
+              <Button variant="outline" className="w-full justify-start bg-transparent">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Ver Sitio Web
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

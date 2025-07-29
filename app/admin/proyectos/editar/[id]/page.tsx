@@ -2,33 +2,71 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Info } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
-import { projectsService } from "@/lib/supabase"
+import { projectsService, type Project } from "@/lib/supabase"
 
-export default function NuevoProyectoPage() {
+export default function EditarProyectoPage() {
+  const params = useParams()
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const [project, setProject] = useState<Project | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     category: "",
-    year: new Date().getFullYear().toString(),
+    year: "",
     location: "",
     area: "",
     coverImage: "",
   })
 
+  useEffect(() => {
+    async function fetchProject() {
+      if (!params.id) return
+
+      try {
+        const projectData = await projectsService.getProjectById(params.id as string)
+        if (projectData) {
+          setProject(projectData)
+          setFormData({
+            title: projectData.title,
+            description: projectData.description,
+            category: projectData.category,
+            year: projectData.year,
+            location: projectData.location,
+            area: projectData.area,
+            coverImage: projectData.project_images?.find((img) => img.is_cover)?.image_url || "",
+          })
+        } else {
+          toast.error("Proyecto no encontrado")
+          router.push("/admin/proyectos")
+        }
+      } catch (error) {
+        console.error("Error fetching project:", error)
+        toast.error("Error al cargar el proyecto")
+        router.push("/admin/proyectos")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProject()
+  }, [params.id, router])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    if (!project) return
+
+    setSaving(true)
 
     try {
       // Validaciones básicas
@@ -40,40 +78,25 @@ export default function NuevoProyectoPage() {
         toast.error("La descripción es requerida")
         return
       }
-      if (!formData.category.trim()) {
-        toast.error("La categoría es requerida")
-        return
-      }
 
-      // Crear el proyecto
-      const projectData = {
+      // Actualizar el proyecto
+      const updatedData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         category: formData.category.trim(),
         year: formData.year,
-        location: formData.location.trim() || "Uruguay",
-        area: formData.area.trim() || "N/A",
-        project_images: formData.coverImage
-          ? [
-              {
-                id: `temp-${Date.now()}`,
-                project_id: "",
-                image_url: formData.coverImage,
-                is_cover: true,
-                order: 0,
-              },
-            ]
-          : [],
+        location: formData.location.trim(),
+        area: formData.area.trim(),
       }
 
-      await projectsService.createProject(projectData)
-      toast.success("Proyecto creado exitosamente")
+      await projectsService.updateProject(project.id, updatedData)
+      toast.success("Proyecto actualizado exitosamente")
       router.push("/admin/proyectos")
     } catch (error) {
-      console.error("Error creating project:", error)
-      toast.error("Error al crear el proyecto")
+      console.error("Error updating project:", error)
+      toast.error("Error al actualizar el proyecto")
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
@@ -81,41 +104,32 @@ export default function NuevoProyectoPage() {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      </div>
+    )
+  }
+
+  if (!project) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-2xl font-bold text-gray-600 mb-4">Proyecto no encontrado</h2>
+        <Button onClick={() => router.push("/admin/proyectos")}>Volver a Proyectos</Button>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => router.push("/admin/proyectos")} disabled={loading}>
+        <Button variant="ghost" onClick={() => router.push("/admin/proyectos")} disabled={saving}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver a Proyectos
         </Button>
-        <h1 className="text-3xl font-bold">Nuevo Proyecto</h1>
+        <h1 className="text-3xl font-bold">Editar: {project.title}</h1>
       </div>
-
-      {/* Información sobre imágenes */}
-      <Card className="border-blue-200 bg-blue-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-blue-800">
-            <Info className="h-5 w-5" />
-            Información sobre Imágenes
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-blue-700 space-y-2">
-          <p>
-            <strong>Para obtener URLs de imágenes gratuitas:</strong>
-          </p>
-          <ul className="list-disc list-inside space-y-1 ml-4">
-            <li>
-              <strong>Unsplash:</strong> unsplash.com (clic derecho → "Copiar dirección de imagen")
-            </li>
-            <li>
-              <strong>Pexels:</strong> pexels.com (botón "Descargar" → copiar URL)
-            </li>
-            <li>
-              <strong>Tamaño recomendado:</strong> 1200x800 píxeles mínimo
-            </li>
-          </ul>
-        </CardContent>
-      </Card>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
@@ -130,8 +144,7 @@ export default function NuevoProyectoPage() {
                   id="title"
                   value={formData.title}
                   onChange={(e) => handleInputChange("title", e.target.value)}
-                  placeholder="Ej: Casa Moderna en Montevideo"
-                  disabled={loading}
+                  disabled={saving}
                   required
                 />
               </div>
@@ -141,8 +154,7 @@ export default function NuevoProyectoPage() {
                   id="category"
                   value={formData.category}
                   onChange={(e) => handleInputChange("category", e.target.value)}
-                  placeholder="Ej: Residencial, Comercial, Industrial"
-                  disabled={loading}
+                  disabled={saving}
                   required
                 />
               </div>
@@ -154,9 +166,8 @@ export default function NuevoProyectoPage() {
                 id="description"
                 value={formData.description}
                 onChange={(e) => handleInputChange("description", e.target.value)}
-                placeholder="Describe el proyecto, sus características principales y lo que lo hace especial..."
                 rows={4}
-                disabled={loading}
+                disabled={saving}
                 required
               />
             </div>
@@ -168,8 +179,7 @@ export default function NuevoProyectoPage() {
                   id="year"
                   value={formData.year}
                   onChange={(e) => handleInputChange("year", e.target.value)}
-                  placeholder="2024"
-                  disabled={loading}
+                  disabled={saving}
                 />
               </div>
               <div>
@@ -178,8 +188,7 @@ export default function NuevoProyectoPage() {
                   id="location"
                   value={formData.location}
                   onChange={(e) => handleInputChange("location", e.target.value)}
-                  placeholder="Montevideo, Uruguay"
-                  disabled={loading}
+                  disabled={saving}
                 />
               </div>
               <div>
@@ -188,34 +197,19 @@ export default function NuevoProyectoPage() {
                   id="area"
                   value={formData.area}
                   onChange={(e) => handleInputChange("area", e.target.value)}
-                  placeholder="250 m²"
-                  disabled={loading}
+                  disabled={saving}
                 />
               </div>
-            </div>
-
-            <div>
-              <Label htmlFor="coverImage">URL de Imagen Principal</Label>
-              <Input
-                id="coverImage"
-                value={formData.coverImage}
-                onChange={(e) => handleInputChange("coverImage", e.target.value)}
-                placeholder="https://images.unsplash.com/photo-..."
-                disabled={loading}
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                Opcional: URL de la imagen que se mostrará como portada del proyecto
-              </p>
             </div>
           </CardContent>
         </Card>
 
         <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => router.push("/admin/proyectos")} disabled={loading}>
+          <Button type="button" variant="outline" onClick={() => router.push("/admin/proyectos")} disabled={saving}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={loading} className="bg-black hover:bg-gray-800 text-white">
-            {loading ? "Creando..." : "Crear Proyecto"}
+          <Button type="submit" disabled={saving} className="bg-black hover:bg-gray-800 text-white">
+            {saving ? "Guardando..." : "Guardar Cambios"}
           </Button>
         </div>
       </form>

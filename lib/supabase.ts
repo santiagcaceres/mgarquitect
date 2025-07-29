@@ -1,30 +1,23 @@
 import { createClient } from "@supabase/supabase-js"
 
-// Variables de entorno (opcionales para desarrollo)
+// Verificar si las variables de entorno están configuradas
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-// Verificar si Supabase está configurado
 const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey)
+const isAdminConfigured = !!(supabaseUrl && supabaseServiceRoleKey)
 
-// Cliente para el lado del cliente (navegador) - con fallback para desarrollo
-export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl!, supabaseAnonKey!)
-  : createClient("https://demo.supabase.co", "demo-key") // Cliente dummy para desarrollo
+// Crear clientes de Supabase
+export const supabase = isSupabaseConfigured ? createClient(supabaseUrl, supabaseAnonKey) : null
 
-// Cliente para el lado del servidor (Server Actions) con permisos de admin
-export const supabaseAdmin =
-  isSupabaseConfigured && supabaseServiceRoleKey
-    ? createClient(supabaseUrl!, supabaseServiceRoleKey, {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      })
-    : createClient("https://demo.supabase.co", "demo-service-key") // Cliente dummy para desarrollo
+export const supabaseAdmin = isAdminConfigured
+  ? createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+  : null
 
-// Tipos para la base de datos
+// Tipos de la base de datos
 export interface Project {
   id: string
   title: string
@@ -33,10 +26,7 @@ export interface Project {
   year: string
   location: string
   area: string
-  is_featured: boolean
-  status: "draft" | "published"
   created_at: string
-  updated_at: string
   project_images?: ProjectImage[]
 }
 
@@ -54,7 +44,6 @@ export interface HeroSlide {
   description: string
   image_url: string
   order: number
-  created_at: string
 }
 
 // Datos de ejemplo para modo demo
@@ -68,10 +57,7 @@ const DEMO_PROJECTS: Project[] = [
     year: "2024",
     location: "Punta del Este, Uruguay",
     area: "220 m²",
-    is_featured: true,
-    status: "published",
     created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
     project_images: [
       {
         id: "img-1",
@@ -79,13 +65,6 @@ const DEMO_PROJECTS: Project[] = [
         image_url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2070&auto=format&fit=crop",
         is_cover: true,
         order: 0,
-      },
-      {
-        id: "img-2",
-        project_id: "demo-1",
-        image_url: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop",
-        is_cover: false,
-        order: 1,
       },
     ],
   },
@@ -98,38 +77,12 @@ const DEMO_PROJECTS: Project[] = [
     year: "2024",
     location: "Montevideo, Uruguay",
     area: "320 m²",
-    is_featured: false,
-    status: "published",
     created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
     project_images: [
       {
-        id: "img-3",
+        id: "img-2",
         project_id: "demo-2",
-        image_url: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2232&auto=format&fit=crop",
-        is_cover: true,
-        order: 0,
-      },
-    ],
-  },
-  {
-    id: "demo-3",
-    title: "Loft Industrial Renovado",
-    description:
-      "Transformación de un espacio industrial en un moderno loft residencial, conservando elementos arquitectónicos originales.",
-    category: "Residencial",
-    year: "2023",
-    location: "Montevideo, Uruguay",
-    area: "180 m²",
-    is_featured: true,
-    status: "published",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    project_images: [
-      {
-        id: "img-4",
-        project_id: "demo-3",
-        image_url: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=2158&auto=format&fit=crop",
+        image_url: "https://images.unsplash.com/photo-1556761175525-78b9dba3b914?q=80&w=1974&auto=format&fit=crop",
         is_cover: true,
         order: 0,
       },
@@ -144,7 +97,6 @@ const DEMO_HERO_SLIDES: HeroSlide[] = [
     description: "Espacios funcionales y estéticamente atractivos",
     image_url: "https://images.unsplash.com/photo-1618220179428-22790b461013?q=80&w=2127&auto=format&fit=crop",
     order: 1,
-    created_at: new Date().toISOString(),
   },
   {
     id: "slide-2",
@@ -152,57 +104,33 @@ const DEMO_HERO_SLIDES: HeroSlide[] = [
     description: "Viviendas modernas que inspiran",
     image_url: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?q=80&w=1974&auto=format&fit=crop",
     order: 2,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "slide-3",
-    title: "Proyectos Comerciales",
-    description: "Diseño innovador para tu negocio",
-    image_url: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2232&auto=format&fit=crop",
-    order: 3,
-    created_at: new Date().toISOString(),
   },
 ]
 
-// Funciones helper para proyectos
+// Servicios de datos
 export const projectsService = {
-  // Obtener todos los proyectos publicados
   async getPublishedProjects(): Promise<Project[]> {
-    if (!isSupabaseConfigured) {
+    if (!supabase) {
       console.log("🔄 Modo demo: usando datos de ejemplo")
-      return DEMO_PROJECTS.filter((p) => p.status === "published")
+      return DEMO_PROJECTS
     }
 
     try {
       const { data, error } = await supabase
         .from("projects")
-        .select(`
-          *,
-          project_images (
-            id,
-            image_url,
-            is_cover,
-            "order"
-          )
-        `)
-        .eq("status", "published")
+        .select(`*, project_images(*)`)
         .order("created_at", { ascending: false })
 
-      if (error) {
-        console.error("Error obteniendo proyectos publicados:", error)
-        return DEMO_PROJECTS.filter((p) => p.status === "published")
-      }
-
+      if (error) throw error
       return data || []
     } catch (error) {
-      console.error("Error en getPublishedProjects:", error)
-      return DEMO_PROJECTS.filter((p) => p.status === "published")
+      console.error("Error fetching published projects:", error)
+      return DEMO_PROJECTS
     }
   },
 
-  // Obtener todos los proyectos (admin)
   async getAllProjects(): Promise<Project[]> {
-    if (!isSupabaseConfigured) {
+    if (!supabaseAdmin) {
       console.log("🔄 Modo demo: usando datos de ejemplo")
       return DEMO_PROJECTS
     }
@@ -210,233 +138,192 @@ export const projectsService = {
     try {
       const { data, error } = await supabaseAdmin
         .from("projects")
-        .select(`
-          *,
-          project_images (
-            id,
-            image_url,
-            is_cover,
-            "order"
-          )
-        `)
+        .select(`*, project_images(*)`)
         .order("created_at", { ascending: false })
 
-      if (error) {
-        console.error("Error obteniendo todos los proyectos:", error)
-        return DEMO_PROJECTS
-      }
-
+      if (error) throw error
       return data || []
     } catch (error) {
-      console.error("Error en getAllProjects:", error)
+      console.error("Error fetching all projects:", error)
       return DEMO_PROJECTS
     }
   },
 
-  // Obtener proyecto por ID
   async getProjectById(id: string): Promise<Project | null> {
-    if (!isSupabaseConfigured) {
+    if (!supabase) {
       console.log("🔄 Modo demo: usando datos de ejemplo")
       return DEMO_PROJECTS.find((p) => p.id === id) || null
     }
 
     try {
-      const { data, error } = await supabase
-        .from("projects")
-        .select(`
-          *,
-          project_images (
-            id,
-            image_url,
-            is_cover,
-            "order"
-          )
-        `)
-        .eq("id", id)
-        .single()
+      const { data, error } = await supabase.from("projects").select(`*, project_images(*)`).eq("id", id).single()
 
-      if (error) {
-        console.error("Error obteniendo proyecto por ID:", error)
-        return DEMO_PROJECTS.find((p) => p.id === id) || null
-      }
-
+      if (error) throw error
       return data
     } catch (error) {
-      console.error("Error en getProjectById:", error)
+      console.error("Error fetching project by ID:", error)
       return DEMO_PROJECTS.find((p) => p.id === id) || null
     }
   },
 
-  // Crear nuevo proyecto
-  async createProject(projectData: Omit<Project, "id" | "created_at" | "updated_at">): Promise<Project> {
-    if (!isSupabaseConfigured) {
+  async createProject(projectData: Omit<Project, "id" | "created_at">): Promise<Project> {
+    if (!supabaseAdmin) {
       console.log("🔄 Modo demo: simulando creación de proyecto")
       const newProject: Project = {
         ...projectData,
         id: `demo-${Date.now()}`,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       }
       return newProject
     }
 
-    const { data, error } = await supabaseAdmin
-      .from("projects")
-      .insert([
-        {
-          ...projectData,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ])
-      .select()
-      .single()
+    try {
+      const { data, error } = await supabaseAdmin
+        .from("projects")
+        .insert([
+          {
+            title: projectData.title,
+            description: projectData.description,
+            category: projectData.category,
+            year: projectData.year,
+            location: projectData.location,
+            area: projectData.area,
+          },
+        ])
+        .select()
+        .single()
 
-    if (error) {
-      console.error("Error creando proyecto:", error)
-      throw new Error(`Error al crear proyecto: ${error.message}`)
+      if (error) throw error
+
+      // Si hay imagen de portada, agregarla
+      if (projectData.project_images && projectData.project_images.length > 0) {
+        const coverImage = projectData.project_images[0]
+        await supabaseAdmin.from("project_images").insert([
+          {
+            project_id: data.id,
+            image_url: coverImage.image_url,
+            is_cover: true,
+            order: 0,
+          },
+        ])
+      }
+
+      return data
+    } catch (error) {
+      console.error("Error creating project:", error)
+      throw error
     }
-
-    return data
   },
 
-  // Actualizar proyecto
   async updateProject(id: string, updates: Partial<Project>): Promise<Project> {
-    if (!isSupabaseConfigured) {
+    if (!supabaseAdmin) {
       console.log("🔄 Modo demo: simulando actualización de proyecto")
       const existingProject = DEMO_PROJECTS.find((p) => p.id === id)
       if (!existingProject) {
         throw new Error("Proyecto no encontrado")
       }
-      return {
-        ...existingProject,
-        ...updates,
-        updated_at: new Date().toISOString(),
-      }
+      return { ...existingProject, ...updates }
     }
 
-    const { data, error } = await supabaseAdmin
-      .from("projects")
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id)
-      .select()
-      .single()
+    try {
+      const { data, error } = await supabaseAdmin
+        .from("projects")
+        .update({
+          title: updates.title,
+          description: updates.description,
+          category: updates.category,
+          year: updates.year,
+          location: updates.location,
+          area: updates.area,
+        })
+        .eq("id", id)
+        .select()
+        .single()
 
-    if (error) {
-      console.error("Error actualizando proyecto:", error)
-      throw new Error(`Error al actualizar proyecto: ${error.message}`)
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error updating project:", error)
+      throw error
     }
-
-    return data
   },
 
-  // Eliminar proyecto
   async deleteProject(id: string): Promise<void> {
-    if (!isSupabaseConfigured) {
+    if (!supabaseAdmin) {
       console.log("🔄 Modo demo: simulando eliminación de proyecto")
       return
     }
 
-    const { error } = await supabaseAdmin.from("projects").delete().eq("id", id)
+    try {
+      const { error } = await supabaseAdmin.from("projects").delete().eq("id", id)
 
-    if (error) {
-      console.error("Error eliminando proyecto:", error)
-      throw new Error(`Error al eliminar proyecto: ${error.message}`)
+      if (error) throw error
+    } catch (error) {
+      console.error("Error deleting project:", error)
+      throw error
     }
   },
 }
 
-// Funciones helper para el hero/banner
 export const heroService = {
-  // Obtener slides del hero
   async getHeroSlides(): Promise<HeroSlide[]> {
-    if (!isSupabaseConfigured) {
+    if (!supabase) {
       console.log("🔄 Modo demo: usando slides de ejemplo")
       return DEMO_HERO_SLIDES
     }
 
     try {
-      const { data, error } = await supabase.from("hero_slides").select("*").order("order", { ascending: true })
+      const { data, error } = await supabase.from("hero_slides").select("*").order("order")
 
-      if (error) {
-        console.error("Error obteniendo slides del hero:", error)
-        return DEMO_HERO_SLIDES
-      }
-
+      if (error) throw error
       return data || DEMO_HERO_SLIDES
     } catch (error) {
-      console.error("Error en getHeroSlides:", error)
+      console.error("Error fetching hero slides:", error)
       return DEMO_HERO_SLIDES
     }
   },
 
-  // Actualizar slides del hero
-  async updateHeroSlides(slides: Omit<HeroSlide, "id" | "created_at">[]): Promise<void> {
-    if (!isSupabaseConfigured) {
+  async updateHeroSlides(slides: Omit<HeroSlide, "id">[]): Promise<void> {
+    if (!supabaseAdmin) {
       console.log("🔄 Modo demo: simulando actualización de slides")
       return
     }
 
-    // Eliminar slides existentes
-    const { error: deleteError } = await supabaseAdmin
-      .from("hero_slides")
-      .delete()
-      .neq("id", "00000000-0000-0000-0000-000000000000")
+    try {
+      // Eliminar slides existentes
+      await supabaseAdmin.from("hero_slides").delete().neq("id", "")
 
-    if (deleteError) {
-      console.error("Error eliminando slides existentes:", deleteError)
-      throw new Error(`Error al eliminar slides: ${deleteError.message}`)
-    }
+      // Insertar nuevos slides
+      const { error } = await supabaseAdmin.from("hero_slides").insert(slides)
 
-    // Insertar nuevos slides
-    const { error: insertError } = await supabaseAdmin.from("hero_slides").insert(
-      slides.map((slide, index) => ({
-        ...slide,
-        order: index + 1,
-        created_at: new Date().toISOString(),
-      })),
-    )
-
-    if (insertError) {
-      console.error("Error insertando nuevos slides:", insertError)
-      throw new Error(`Error al insertar slides: ${insertError.message}`)
+      if (error) throw error
+    } catch (error) {
+      console.error("Error updating hero slides:", error)
+      throw error
     }
   },
 }
 
-// Función para probar la conexión
 export async function testConnection(): Promise<{ success: boolean; message: string }> {
-  if (!isSupabaseConfigured) {
+  if (!supabase) {
     return {
       success: false,
-      message: "Modo demo: Supabase no configurado. Configura las variables de entorno para usar la base de datos.",
+      message: "🔄 Modo demo activo - Configura las variables de entorno para conectar con Supabase",
     }
   }
 
   try {
-    const { data, error } = await supabase.from("projects").select("count", { count: "exact", head: true })
-
-    if (error) {
-      return {
-        success: false,
-        message: `Error de conexión: ${error.message}`,
-      }
-    }
+    const { data, error } = await supabase.from("projects").select("id").limit(1)
+    if (error) throw error
 
     return {
       success: true,
-      message: "Conexión exitosa con Supabase",
+      message: "✅ Conectado a Supabase correctamente",
     }
   } catch (error: any) {
     return {
       success: false,
-      message: `Error de conexión: ${error.message}`,
+      message: `❌ Error de conexión: ${error.message}`,
     }
   }
 }
-
-// Exportar estado de configuración para uso en componentes
-export { isSupabaseConfigured }
