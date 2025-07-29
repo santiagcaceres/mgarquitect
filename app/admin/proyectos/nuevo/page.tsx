@@ -2,20 +2,23 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Info } from "lucide-react"
+import { ArrowLeft, X, Info } from "lucide-react"
 import { toast } from "sonner"
-import { projectsService } from "@/lib/supabase"
+import { createOrUpdateProject } from "@/app/actions/projects"
+import Image from "next/image"
 
 export default function NuevoProyectoPage() {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const [coverPreview, setCoverPreview] = useState<string | null>(null)
+  const [otherPreviews, setOtherPreviews] = useState<string[]>([])
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -23,58 +26,62 @@ export default function NuevoProyectoPage() {
     year: new Date().getFullYear().toString(),
     location: "",
     area: "",
-    coverImage: "",
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-
-    try {
-      // Validaciones básicas
-      if (!formData.title.trim()) {
-        toast.error("El título es requerido")
-        return
+  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        setCoverPreview(event.target?.result as string)
       }
-      if (!formData.description.trim()) {
-        toast.error("La descripción es requerida")
-        return
-      }
-      if (!formData.category.trim()) {
-        toast.error("La categoría es requerida")
-        return
-      }
-
-      // Crear el proyecto
-      const projectData = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        category: formData.category.trim(),
-        year: formData.year,
-        location: formData.location.trim() || "Uruguay",
-        area: formData.area.trim() || "N/A",
-        project_images: formData.coverImage
-          ? [
-              {
-                id: `temp-${Date.now()}`,
-                project_id: "",
-                image_url: formData.coverImage,
-                is_cover: true,
-                order: 0,
-              },
-            ]
-          : [],
-      }
-
-      await projectsService.createProject(projectData)
-      toast.success("Proyecto creado exitosamente")
-      router.push("/admin/proyectos")
-    } catch (error) {
-      console.error("Error creating project:", error)
-      toast.error("Error al crear el proyecto")
-    } finally {
-      setLoading(false)
+      reader.readAsDataURL(file)
     }
+  }
+
+  const handleOtherImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    const previews: string[] = []
+
+    files.forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        previews.push(event.target?.result as string)
+        if (previews.length === files.length) {
+          setOtherPreviews(previews)
+        }
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const removeCoverPreview = () => {
+    setCoverPreview(null)
+    const input = document.getElementById("coverImage") as HTMLInputElement
+    if (input) input.value = ""
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+
+    startTransition(async () => {
+      const form = e.target as HTMLFormElement
+      const formDataToSend = new FormData(form)
+
+      // Agregar datos del estado
+      Object.entries(formData).forEach(([key, value]) => {
+        formDataToSend.set(key, value)
+      })
+
+      const result = await createOrUpdateProject(formDataToSend)
+
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        toast.success("Proyecto creado exitosamente")
+        router.push("/admin/proyectos")
+      }
+    })
   }
 
   const handleInputChange = (field: string, value: string) => {
@@ -84,7 +91,7 @@ export default function NuevoProyectoPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => router.push("/admin/proyectos")} disabled={loading}>
+        <Button variant="ghost" onClick={() => router.push("/admin/proyectos")} disabled={isPending}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver a Proyectos
         </Button>
@@ -101,17 +108,23 @@ export default function NuevoProyectoPage() {
         </CardHeader>
         <CardContent className="text-blue-700 space-y-2">
           <p>
-            <strong>Para obtener URLs de imágenes gratuitas:</strong>
+            <strong>Subida de archivos locales:</strong>
           </p>
           <ul className="list-disc list-inside space-y-1 ml-4">
             <li>
-              <strong>Unsplash:</strong> unsplash.com (clic derecho → "Copiar dirección de imagen")
+              <strong>Formatos aceptados:</strong> JPG, PNG, WebP
             </li>
             <li>
-              <strong>Pexels:</strong> pexels.com (botón "Descargar" → copiar URL)
+              <strong>Tamaño máximo:</strong> 5MB por imagen
             </li>
             <li>
-              <strong>Tamaño recomendado:</strong> 1200x800 píxeles mínimo
+              <strong>Resolución recomendada:</strong> 1200x800 píxeles mínimo
+            </li>
+            <li>
+              <strong>Imagen de portada:</strong> Se mostrará como imagen principal
+            </li>
+            <li>
+              <strong>Imágenes adicionales:</strong> Se mostrarán en la galería del proyecto
             </li>
           </ul>
         </CardContent>
@@ -128,10 +141,11 @@ export default function NuevoProyectoPage() {
                 <Label htmlFor="title">Título del Proyecto *</Label>
                 <Input
                   id="title"
+                  name="title"
                   value={formData.title}
                   onChange={(e) => handleInputChange("title", e.target.value)}
                   placeholder="Ej: Casa Moderna en Montevideo"
-                  disabled={loading}
+                  disabled={isPending}
                   required
                 />
               </div>
@@ -139,10 +153,11 @@ export default function NuevoProyectoPage() {
                 <Label htmlFor="category">Categoría *</Label>
                 <Input
                   id="category"
+                  name="category"
                   value={formData.category}
                   onChange={(e) => handleInputChange("category", e.target.value)}
                   placeholder="Ej: Residencial, Comercial, Industrial"
-                  disabled={loading}
+                  disabled={isPending}
                   required
                 />
               </div>
@@ -152,11 +167,12 @@ export default function NuevoProyectoPage() {
               <Label htmlFor="description">Descripción *</Label>
               <Textarea
                 id="description"
+                name="description"
                 value={formData.description}
                 onChange={(e) => handleInputChange("description", e.target.value)}
                 placeholder="Describe el proyecto, sus características principales y lo que lo hace especial..."
                 rows={4}
-                disabled={loading}
+                disabled={isPending}
                 required
               />
             </div>
@@ -166,56 +182,124 @@ export default function NuevoProyectoPage() {
                 <Label htmlFor="year">Año</Label>
                 <Input
                   id="year"
+                  name="year"
                   value={formData.year}
                   onChange={(e) => handleInputChange("year", e.target.value)}
                   placeholder="2024"
-                  disabled={loading}
+                  disabled={isPending}
                 />
               </div>
               <div>
                 <Label htmlFor="location">Ubicación</Label>
                 <Input
                   id="location"
+                  name="location"
                   value={formData.location}
                   onChange={(e) => handleInputChange("location", e.target.value)}
                   placeholder="Montevideo, Uruguay"
-                  disabled={loading}
+                  disabled={isPending}
                 />
               </div>
               <div>
                 <Label htmlFor="area">Área</Label>
                 <Input
                   id="area"
+                  name="area"
                   value={formData.area}
                   onChange={(e) => handleInputChange("area", e.target.value)}
                   placeholder="250 m²"
-                  disabled={loading}
+                  disabled={isPending}
                 />
               </div>
             </div>
+          </CardContent>
+        </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle>Imágenes del Proyecto</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Imagen de portada */}
             <div>
-              <Label htmlFor="coverImage">URL de Imagen Principal</Label>
-              <Input
-                id="coverImage"
-                value={formData.coverImage}
-                onChange={(e) => handleInputChange("coverImage", e.target.value)}
-                placeholder="https://images.unsplash.com/photo-..."
-                disabled={loading}
-              />
+              <Label htmlFor="coverImage">Imagen de Portada *</Label>
+              <div className="mt-2">
+                <Input
+                  id="coverImage"
+                  name="coverImage"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCoverImageChange}
+                  disabled={isPending}
+                  className="mb-4"
+                />
+                {coverPreview && (
+                  <div className="relative inline-block">
+                    <Image
+                      src={coverPreview || "/placeholder.svg"}
+                      alt="Vista previa"
+                      width={200}
+                      height={150}
+                      className="rounded-lg object-cover border"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeCoverPreview}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                      disabled={isPending}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
               <p className="text-sm text-gray-500 mt-1">
-                Opcional: URL de la imagen que se mostrará como portada del proyecto
+                Esta será la imagen principal que se mostrará en la lista de proyectos
+              </p>
+            </div>
+
+            {/* Imágenes adicionales */}
+            <div>
+              <Label htmlFor="otherImages">Imágenes Adicionales</Label>
+              <div className="mt-2">
+                <Input
+                  id="otherImages"
+                  name="otherImages"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleOtherImagesChange}
+                  disabled={isPending}
+                  className="mb-4"
+                />
+                {otherPreviews.length > 0 && (
+                  <div className="flex flex-wrap gap-4">
+                    {otherPreviews.map((preview, index) => (
+                      <Image
+                        key={index}
+                        src={preview || "/placeholder.svg"}
+                        alt={`Vista previa ${index + 1}`}
+                        width={150}
+                        height={100}
+                        className="rounded-lg object-cover border"
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
+                Estas imágenes se mostrarán en la galería del proyecto (opcional)
               </p>
             </div>
           </CardContent>
         </Card>
 
         <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => router.push("/admin/proyectos")} disabled={loading}>
+          <Button type="button" variant="outline" onClick={() => router.push("/admin/proyectos")} disabled={isPending}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={loading} className="bg-black hover:bg-gray-800 text-white">
-            {loading ? "Creando..." : "Crear Proyecto"}
+          <Button type="submit" disabled={isPending} className="bg-black hover:bg-gray-800 text-white">
+            {isPending ? "Creando..." : "Crear Proyecto"}
           </Button>
         </div>
       </form>

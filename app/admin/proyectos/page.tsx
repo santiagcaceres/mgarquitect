@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useTransition } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -19,10 +19,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
+import { deleteProject } from "@/app/actions/projects"
 
 export default function ProyectosAdminPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
+  const [isPending, startTransition] = useTransition()
 
   async function fetchProjects() {
     setLoading(true)
@@ -41,15 +43,17 @@ export default function ProyectosAdminPage() {
     fetchProjects()
   }, [])
 
-  const handleDelete = async (projectId: string, projectTitle: string) => {
-    try {
-      await projectsService.deleteProject(projectId)
-      toast.success(`Proyecto "${projectTitle}" eliminado con éxito`)
-      fetchProjects()
-    } catch (error) {
-      console.error("Error deleting project:", error)
-      toast.error("Error al eliminar el proyecto")
-    }
+  const handleDelete = (projectId: string, projectTitle: string) => {
+    startTransition(async () => {
+      const result = await deleteProject(projectId)
+
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        toast.success(`Proyecto "${projectTitle}" eliminado con éxito`)
+        fetchProjects() // Recargar la lista
+      }
+    })
   }
 
   if (loading) {
@@ -99,16 +103,16 @@ export default function ProyectosAdminPage() {
 
                   <div className="flex gap-2">
                     <Link href={`/admin/proyectos/editar/${project.id}`} className="flex-1">
-                      <Button variant="outline" size="sm" className="w-full bg-transparent">
+                      <Button variant="outline" size="sm" className="w-full bg-transparent" disabled={isPending}>
                         <Edit className="mr-2 h-4 w-4" />
                         Editar
                       </Button>
                     </Link>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm" className="flex-1">
+                        <Button variant="destructive" size="sm" className="flex-1" disabled={isPending}>
                           <Trash2 className="mr-2 h-4 w-4" />
-                          Eliminar
+                          {isPending ? "..." : "Eliminar"}
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
@@ -116,13 +120,16 @@ export default function ProyectosAdminPage() {
                           <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                           <AlertDialogDescription>
                             Esta acción no se puede deshacer. Se eliminará el proyecto "{project.title}" y todas sus
-                            imágenes asociadas.
+                            imágenes asociadas permanentemente.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(project.id, project.title)}>
-                            Confirmar
+                          <AlertDialogCancel disabled={isPending}>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(project.id, project.title)}
+                            disabled={isPending}
+                          >
+                            {isPending ? "Eliminando..." : "Confirmar"}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>

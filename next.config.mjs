@@ -7,13 +7,9 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    // Se han añadido los dominios para Unsplash (datos de ejemplo)
-    // y un placeholder para tu Supabase Storage.
-    // DEBES REEMPLAZAR 'id-de-tu-proyecto' con el ID de tu proyecto de Supabase.
-    // Lo encuentras en la URL de tu dashboard de Supabase.
     domains: [
       "images.unsplash.com",
-      "id-de-tu-proyecto.supabase.co", // REEMPLAZAR ESTO
+      "djmnkzizhypvndpxfefp.supabase.co",
     ],
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
