@@ -49,13 +49,28 @@ export async function updateHeroSlides(formData: FormData) {
       return { error: "Debe haber al menos un slide" }
     }
 
-    // Eliminar todos los slides existentes
+    // Eliminar todos los slides existentes (FORMA CORRECTA)
     console.log("🗑️ Eliminando slides existentes...")
-    const { error: deleteError } = await supabaseAdmin.from("hero_slides").delete().neq("id", "")
+    const { error: deleteError } = await supabaseAdmin
+      .from("hero_slides")
+      .delete()
+      .gte("id", "00000000-0000-0000-0000-000000000000") // Eliminar todos los registros
 
     if (deleteError) {
       console.error("❌ Error eliminando slides:", deleteError)
-      throw new Error(`Error al eliminar slides existentes: ${deleteError.message}`)
+      // Si falla el delete, intentamos con TRUNCATE via función
+      try {
+        await supabaseAdmin.rpc("truncate_hero_slides")
+      } catch (truncateError) {
+        console.error("❌ Error con truncate también:", truncateError)
+        // Como último recurso, eliminamos uno por uno
+        const { data: existingSlides } = await supabaseAdmin.from("hero_slides").select("id")
+        if (existingSlides) {
+          for (const slide of existingSlides) {
+            await supabaseAdmin.from("hero_slides").delete().eq("id", slide.id)
+          }
+        }
+      }
     }
 
     // Procesar cada slide
