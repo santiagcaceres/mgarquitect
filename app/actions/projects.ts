@@ -97,17 +97,60 @@ export async function createOrUpdateProject(formData: FormData) {
       console.log("✅ Proyecto creado exitosamente:", currentProjectId)
     }
 
-    // Manejar imagen de portada
+    // Manejar imágenes existentes (solo para edición)
+    if (projectId) {
+      const existingImagesData = formData.get("existingImages") as string
+      if (existingImagesData) {
+        try {
+          const existingImages = JSON.parse(existingImagesData)
+          console.log("🖼️ Procesando imágenes existentes:", existingImages.length)
+
+          // Obtener imágenes actuales en la base de datos
+          const { data: currentImages } = await supabaseAdmin
+            .from("project_images")
+            .select("*")
+            .eq("project_id", currentProjectId)
+
+          if (currentImages) {
+            // Encontrar imágenes que se eliminaron
+            const existingImageIds = existingImages.map((img: any) => img.id)
+            const imagesToDelete = currentImages.filter((img) => !existingImageIds.includes(img.id))
+
+            // Eliminar imágenes que ya no están
+            for (const imageToDelete of imagesToDelete) {
+              console.log("🗑️ Eliminando imagen:", imageToDelete.id)
+              await supabaseAdmin.from("project_images").delete().eq("id", imageToDelete.id)
+
+              // También eliminar del storage
+              try {
+                const fileName = imageToDelete.image_url.split("/").pop()
+                if (fileName) {
+                  await supabaseAdmin.storage.from("project-images").remove([`${currentProjectId}/${fileName}`])
+                }
+              } catch (storageError) {
+                console.warn("⚠️ Error eliminando del storage:", storageError)
+              }
+            }
+
+            // Actualizar imágenes existentes (especialmente is_cover)
+            for (const existingImage of existingImages) {
+              await supabaseAdmin
+                .from("project_images")
+                .update({ is_cover: existingImage.is_cover })
+                .eq("id", existingImage.id)
+            }
+          }
+        } catch (error) {
+          console.error("❌ Error procesando imágenes existentes:", error)
+        }
+      }
+    }
+
+    // Manejar imagen de portada (solo para proyectos nuevos)
     const coverImage = formData.get("coverImage") as File
-    if (coverImage && coverImage.size > 0) {
+    if (coverImage && coverImage.size > 0 && !projectId) {
       console.log("📸 Procesando imagen de portada...")
 
-      // Eliminar imagen de portada anterior si existe
-      if (projectId) {
-        await supabaseAdmin.from("project_images").delete().eq("project_id", currentProjectId).eq("is_cover", true)
-      }
-
-      // Subir nueva imagen de portada
       const imageUrl = await uploadImage(coverImage, currentProjectId)
 
       const { error: imageError } = await supabaseAdmin.from("project_images").insert([
@@ -131,17 +174,28 @@ export async function createOrUpdateProject(formData: FormData) {
     if (otherImages.length > 0) {
       console.log("📸 Procesando imágenes adicionales:", otherImages.length)
 
+      // Obtener el número actual de imágenes para el orden
+      const { data: currentImagesCount } = await supabaseAdmin
+        .from("project_images")
+        .select("id")
+        .eq("project_id", currentProjectId)
+
+      const startOrder = (currentImagesCount?.length || 0) + 1
+
       for (let i = 0; i < otherImages.length; i++) {
         const file = otherImages[i]
         if (file && file.size > 0) {
           const imageUrl = await uploadImage(file, currentProjectId)
 
+          // Si es la primera imagen y no hay imagen de portada, marcarla como portada
+          const isFirstImage = i === 0 && (currentImagesCount?.length || 0) === 0
+
           const { error: imageError } = await supabaseAdmin.from("project_images").insert([
             {
               project_id: currentProjectId,
               image_url: imageUrl,
-              is_cover: false,
-              order: i + 1,
+              is_cover: isFirstImage,
+              order: startOrder + i,
             },
           ])
 
