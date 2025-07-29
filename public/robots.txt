@@ -1,0 +1,26 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /_next/
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://mgarquitectura.com/sitemap.xml
+
+# Crawl-delay
+Crawl-delay: 1
+
+# Specific bots
+User-agent: Googlebot
+Allow: /
+Disallow: /admin/
+
+User-agent: Bingbot  
+Allow: /
+Disallow: /admin/
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /

@@ -1,0 +1,297 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 0 0% 0%;
+    --radius: 0.5rem;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell",
+      "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  .btn-black {
+    background-color: #000000;
+    color: #ffffff;
+    border-color: #000000;
+    transition: none;
+  }
+
+  .btn-black:hover {
+    background-color: #000000;
+    color: #ffffff;
+    border-color: #000000;
+  }
+
+  .btn-black:focus {
+    background-color: #000000;
+    color: #ffffff;
+    border-color: #000000;
+    outline: none;
+    box-shadow: none;
+  }
+
+  .btn-black:active {
+    background-color: #000000;
+    color: #ffffff;
+    border-color: #000000;
+  }
+
+  .floating-btn {
+    background: linear-gradient(135deg, #000000 0%, #333333 100%);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    transform: translateY(-50%);
+    backdrop-filter: blur(10px);
+    color: #ffffff;
+    border: none;
+  }
+
+  .floating-btn::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+}
+
+@layer utilities {
+  button[type="submit"],
+  button[type="button"],
+  .btn,
+  [role="button"] {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border-color: #000000 !important;
+    transition: none !important;
+  }
+
+  button[type="submit"]:hover,
+  button[type="button"]:hover,
+  .btn:hover,
+  [role="button"]:hover {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border-color: #000000 !important;
+  }
+
+  button[type="submit"]:focus,
+  button[type="button"]:focus,
+  .btn:focus,
+  [role="button"]:focus {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border-color: #000000 !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  button[type="submit"]:active,
+  button[type="button"]:active,
+  .btn:active,
+  [role="button"]:active {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border-color: #000000 !important;
+  }
+
+  .bg-primary {
+    background-color: #000000 !important;
+  }
+
+  .text-primary {
+    color: #000000 !important;
+  }
+
+  .border-primary {
+    border-color: #000000 !important;
+  }
+
+  .ring-primary {
+    --tw-ring-color: #000000 !important;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    border-color: #000000 !important;
+    --tw-ring-color: #000000 !important;
+    outline: none !important;
+  }
+
+  .bg-blue-600,
+  .bg-blue-500,
+  .hover\:bg-blue-700:hover,
+  .hover\:bg-blue-600:hover,
+  .hover\:bg-primary:hover {
+    background-color: #000000 !important;
+  }
+
+  .text-blue-600,
+  .text-blue-500,
+  .text-primary-foreground {
+    color: #ffffff !important;
+  }
+
+  .no-transition * {
+    transition: none !important;
+  }
+}
+
+/* Marquee animations - Más rápido en mobile */
+.marquee-container {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+.marquee-content {
+  display: flex;
+  width: max-content;
+  /* Desktop: 40s, Mobile: 25s */
+  animation: marquee 40s linear infinite;
+}
+
+/* Mobile: animación más rápida */
+@media (max-width: 768px) {
+  .marquee-content {
+    animation: marquee 25s linear infinite;
+  }
+}
+
+/* Tablet: velocidad intermedia */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .marquee-content {
+    animation: marquee 30s linear infinite;
+  }
+}
+
+.marquee-container:hover .marquee-content {
+  animation-play-state: paused;
+}
+
+.marquee-item {
+  flex-shrink: 0;
+  width: 350px;
+  margin: 0 1rem;
+  transition: transform 0.3s ease;
+}
+
+/* Mobile: items más pequeños */
+@media (max-width: 768px) {
+  .marquee-item {
+    width: 280px;
+    margin: 0 0.5rem;
+  }
+}
+
+.marquee-item:hover {
+  transform: translateY(-8px);
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.ripple-btn {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.ripple-btn:active {
+  transform: scale(0.98);
+}
+
+.ripple-effect {
+  position: absolute;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.7);
+  transform: scale(0);
+  animation: ripple 0.6s linear;
+  pointer-events: none;
+}
+
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
