@@ -63,20 +63,24 @@ export const projectsService = {
     }
 
     try {
+      console.log("🔍 Obteniendo proyectos públicos...")
       const { data, error } = await supabase
         .from("projects")
-        .select(`*, project_images(*)`)
+        .select(`
+          *,
+          project_images(*)
+        `)
         .order("created_at", { ascending: false })
 
       if (error) {
-        console.error("Error fetching published projects:", error)
-        throw error
+        console.error("❌ Error fetching published projects:", error)
+        return []
       }
 
-      console.log("✅ Proyectos públicos cargados desde Supabase:", data?.length || 0)
+      console.log("✅ Proyectos públicos cargados:", data?.length || 0)
       return data || []
     } catch (error) {
-      console.error("Error fetching published projects:", error)
+      console.error("❌ Exception in getPublishedProjects:", error)
       return []
     }
   },
@@ -88,20 +92,24 @@ export const projectsService = {
     }
 
     try {
+      console.log("🔍 Obteniendo todos los proyectos (admin)...")
       const { data, error } = await supabaseAdmin
         .from("projects")
-        .select(`*, project_images(*)`)
+        .select(`
+          *,
+          project_images(*)
+        `)
         .order("created_at", { ascending: false })
 
       if (error) {
-        console.error("Error fetching all projects:", error)
-        throw error
+        console.error("❌ Error fetching all projects:", error)
+        return []
       }
 
-      console.log("✅ Todos los proyectos cargados desde Supabase:", data?.length || 0)
+      console.log("✅ Todos los proyectos cargados (admin):", data?.length || 0)
       return data || []
     } catch (error) {
-      console.error("Error fetching all projects:", error)
+      console.error("❌ Exception in getAllProjects:", error)
       return []
     }
   },
@@ -113,17 +121,25 @@ export const projectsService = {
     }
 
     try {
-      const { data, error } = await supabase.from("projects").select(`*, project_images(*)`).eq("id", id).single()
+      console.log("🔍 Obteniendo proyecto por ID:", id)
+      const { data, error } = await supabase
+        .from("projects")
+        .select(`
+          *,
+          project_images(*)
+        `)
+        .eq("id", id)
+        .single()
 
       if (error) {
-        console.error("Error fetching project by ID:", error)
-        throw error
+        console.error("❌ Error fetching project by ID:", error)
+        return null
       }
 
-      console.log("✅ Proyecto cargado desde Supabase:", data?.title)
+      console.log("✅ Proyecto cargado:", data?.title)
       return data
     } catch (error) {
-      console.error("Error fetching project by ID:", error)
+      console.error("❌ Exception in getProjectById:", error)
       return null
     }
   },
@@ -134,6 +150,7 @@ export const projectsService = {
     }
 
     try {
+      console.log("🆕 Creando proyecto:", projectData.title)
       const { data, error } = await supabaseAdmin
         .from("projects")
         .insert([
@@ -150,14 +167,14 @@ export const projectsService = {
         .single()
 
       if (error) {
-        console.error("Error creating project:", error)
+        console.error("❌ Error creating project:", error)
         throw error
       }
 
       console.log("✅ Proyecto creado en Supabase:", data.title)
       return data
     } catch (error) {
-      console.error("Error creating project:", error)
+      console.error("❌ Exception in createProject:", error)
       throw error
     }
   },
@@ -168,6 +185,7 @@ export const projectsService = {
     }
 
     try {
+      console.log("🔄 Actualizando proyecto:", id)
       const { data, error } = await supabaseAdmin
         .from("projects")
         .update({
@@ -183,14 +201,14 @@ export const projectsService = {
         .single()
 
       if (error) {
-        console.error("Error updating project:", error)
+        console.error("❌ Error updating project:", error)
         throw error
       }
 
       console.log("✅ Proyecto actualizado en Supabase:", data.title)
       return data
     } catch (error) {
-      console.error("Error updating project:", error)
+      console.error("❌ Exception in updateProject:", error)
       throw error
     }
   },
@@ -201,16 +219,17 @@ export const projectsService = {
     }
 
     try {
+      console.log("🗑️ Eliminando proyecto:", id)
       const { error } = await supabaseAdmin.from("projects").delete().eq("id", id)
 
       if (error) {
-        console.error("Error deleting project:", error)
+        console.error("❌ Error deleting project:", error)
         throw error
       }
 
       console.log("✅ Proyecto eliminado de Supabase:", id)
     } catch (error) {
-      console.error("Error deleting project:", error)
+      console.error("❌ Exception in deleteProject:", error)
       throw error
     }
   },

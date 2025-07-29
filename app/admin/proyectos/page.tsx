@@ -5,7 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Plus, Edit, Trash2, Eye, Briefcase } from "lucide-react"
+import { Plus, Edit, Trash2, Briefcase } from "lucide-react"
 import { projectsService, type Project } from "@/lib/supabase"
 import {
   AlertDialog,
@@ -29,10 +29,12 @@ export default function ProyectosAdminPage() {
   async function fetchProjects() {
     setLoading(true)
     try {
-      const data = await projectsService.getAllProjects()
+      console.log("🔄 Cargando proyectos publicados...")
+      const data = await projectsService.getPublishedProjects()
+      console.log("📊 Proyectos obtenidos:", data.length)
       setProjects(data)
     } catch (error) {
-      console.error("Error fetching projects:", error)
+      console.error("❌ Error fetching projects:", error)
       toast.error("Error al cargar los proyectos")
     } finally {
       setLoading(false)
@@ -45,13 +47,19 @@ export default function ProyectosAdminPage() {
 
   const handleDelete = (projectId: string, projectTitle: string) => {
     startTransition(async () => {
-      const result = await deleteProject(projectId)
+      try {
+        console.log("🗑️ Eliminando proyecto:", projectId)
+        const result = await deleteProject(projectId)
 
-      if (result.error) {
-        toast.error(result.error)
-      } else {
-        toast.success(`Proyecto "${projectTitle}" eliminado con éxito`)
-        fetchProjects() // Recargar la lista
+        if (result.error) {
+          toast.error(result.error)
+        } else {
+          toast.success(`Proyecto "${projectTitle}" eliminado con éxito`)
+          fetchProjects() // Recargar la lista
+        }
+      } catch (error) {
+        console.error("❌ Error en handleDelete:", error)
+        toast.error("Error al eliminar el proyecto")
       }
     })
   }
@@ -67,7 +75,7 @@ export default function ProyectosAdminPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Proyectos</h1>
+        <h1 className="text-3xl font-bold">Todos los Proyectos ({projects.length})</h1>
         <Link href="/admin/proyectos/nuevo">
           <Button className="bg-black hover:bg-gray-800 text-white">
             <Plus className="mr-2 h-4 w-4" />
@@ -89,16 +97,12 @@ export default function ProyectosAdminPage() {
                     fill
                     className="object-cover"
                   />
-                  <div className="absolute top-2 right-2">
-                    <div className="flex items-center gap-1 bg-black/70 text-white px-2 py-1 rounded text-xs">
-                      <Eye className="h-3 w-3" />
-                      Publicado
-                    </div>
-                  </div>
                 </div>
                 <CardContent className="p-4">
                   <h3 className="text-lg font-semibold truncate mb-1">{project.title}</h3>
-                  <p className="text-sm text-gray-500 mb-2">{project.category}</p>
+                  <p className="text-sm text-gray-500 mb-2">
+                    {project.category} • {project.year}
+                  </p>
                   <p className="text-xs text-gray-400 mb-4 line-clamp-2">{project.description}</p>
 
                   <div className="flex gap-2">
