@@ -60,7 +60,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="proyectos.mgimenez@gmail.com"
+                placeholder="Ingresa tu email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -85,16 +85,6 @@ export default function LoginPage() {
               {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
             </Button>
           </form>
-
-          <div className="mt-6 text-center text-sm text-gray-600">
-            <p>Credenciales de prueba:</p>
-            <p>
-              <strong>Email:</strong> proyectos.mgimenez@gmail.com
-            </p>
-            <p>
-              <strong>Contraseña:</strong> mgadmin2025
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>
