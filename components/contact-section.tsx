@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Phone, Mail, MapPin } from "lucide-react"
-import { useActionState, useRef, useEffect } from "react"
+import { useFormState } from "react-dom"
+import { useRef, useEffect } from "react"
 import { sendContactEmail } from "@/app/actions/contact"
 import { toast } from "sonner"
 
 export function ContactSection() {
   const formRef = useRef<HTMLFormElement>(null)
-  const [state, formAction, isPending] = useActionState(sendContactEmail, null)
+  const [state, formAction] = useFormState(sendContactEmail, null)
 
   const handlePhoneClick = () => {
     window.open("https://wa.me/59892078496", "_blank")
@@ -77,14 +78,12 @@ export function ContactSection() {
                   placeholder="Nombre"
                   className="bg-gray-50 border-gray-300 text-black placeholder:text-gray-500 focus:border-black focus:ring-black"
                   required
-                  disabled={isPending}
                 />
                 <Input
                   name="lastName"
                   placeholder="Apellido"
                   className="bg-gray-50 border-gray-300 text-black placeholder:text-gray-500 focus:border-black focus:ring-black"
                   required
-                  disabled={isPending}
                 />
               </div>
               <Input
@@ -93,41 +92,29 @@ export function ContactSection() {
                 placeholder="Email"
                 className="bg-gray-50 border-gray-300 text-black placeholder:text-gray-500 focus:border-black focus:ring-black"
                 required
-                disabled={isPending}
               />
               <Input
                 name="phone"
                 placeholder="Teléfono (opcional)"
                 className="bg-gray-50 border-gray-300 text-black placeholder:text-gray-500 focus:border-black focus:ring-black"
-                disabled={isPending}
               />
               <Input
                 name="subject"
                 placeholder="Asunto"
                 className="bg-gray-50 border-gray-300 text-black placeholder:text-gray-500 focus:border-black focus:ring-black"
                 required
-                disabled={isPending}
               />
               <Textarea
                 name="message"
                 placeholder="Cuéntanos sobre tu proyecto..."
                 className="min-h-32 bg-gray-50 border-gray-300 text-black placeholder:text-gray-500 focus:border-black focus:ring-black"
                 required
-                disabled={isPending}
               />
               <Button
                 type="submit"
                 className="w-full bg-black hover:bg-gray-800 text-white py-3 text-lg font-medium transition-all duration-200"
-                disabled={isPending}
               >
-                {isPending ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    Enviando mensaje...
-                  </span>
-                ) : (
-                  "Enviar Mensaje"
-                )}
+                Enviar Mensaje
               </Button>
             </form>
           </div>
