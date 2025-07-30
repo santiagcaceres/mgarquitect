@@ -115,7 +115,7 @@ export default function NuevoProyectoPage() {
               <strong>Formatos aceptados:</strong> JPG, PNG, WebP
             </li>
             <li>
-              <strong>Tamaño máximo:</strong> 5MB por imagen
+              <strong>Tamaño máximo:</strong> 15MB por imagen
             </li>
             <li>
               <strong>Resolución recomendada:</strong> 1200x800 píxeles mínimo

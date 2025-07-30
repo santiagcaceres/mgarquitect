@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Plus, Trash2, X, Upload, Info } from "lucide-react"
+import { Plus, Trash2, X, Upload, Info, ArrowUp, ArrowDown } from "lucide-react"
 import Image from "next/image"
 import { toast } from "sonner"
 import { heroService } from "@/lib/supabase"
@@ -228,7 +228,7 @@ export default function ConfiguracionesPage() {
               <strong>Formatos aceptados:</strong> JPG, PNG, WebP
             </li>
             <li>
-              <strong>Tamaño máximo:</strong> 5MB por imagen
+              <strong>Tamaño máximo:</strong> 15MB por imagen
             </li>
             <li>
               <strong>Resolución recomendada:</strong> 1920x1080 píxeles (formato panorámico)
@@ -271,7 +271,7 @@ export default function ConfiguracionesPage() {
                           onClick={() => moveSlide(index, "up")}
                           disabled={isSaving || index === 0}
                         >
-                          ↑
+                          <ArrowUp className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="outline"
@@ -279,7 +279,7 @@ export default function ConfiguracionesPage() {
                           onClick={() => moveSlide(index, "down")}
                           disabled={isSaving || index === slides.length - 1}
                         >
-                          ↓
+                          <ArrowDown className="h-4 w-4" />
                         </Button>
                         <Button variant="destructive" size="sm" onClick={() => removeSlide(index)} disabled={isSaving}>
                           <Trash2 className="w-4 h-4 mr-2" />
