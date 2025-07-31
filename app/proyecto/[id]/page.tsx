@@ -10,6 +10,7 @@ import { LoadingScreen } from "@/components/loading-screen"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { projectsService, type Project } from "@/lib/supabase"
+import { trackProjectView, trackWhatsAppClick, trackEmailClick } from "@/lib/gtag"
 
 export default function ProyectoPage() {
   const params = useParams()
@@ -31,6 +32,11 @@ export default function ProyectoPage() {
         const projectId = params.id as string
         const data = await projectsService.getProjectById(projectId)
         setProject(data)
+
+        // Rastrear visualización del proyecto
+        if (data) {
+          trackProjectView(data.title)
+        }
       } catch (error) {
         console.error("Error fetching project:", error)
       }
@@ -42,10 +48,12 @@ export default function ProyectoPage() {
   }, [params.id, isLoading])
 
   const handlePhoneClick = () => {
+    trackWhatsAppClick()
     window.open("https://wa.me/59892078496", "_blank")
   }
 
   const handleEmailClick = () => {
+    trackEmailClick()
     const email = "proyectos.mgimenez@gmail.com"
     const subject = "Consulta sobre proyecto similar"
     const body = `Hola, me interesa un proyecto similar a "${project?.title}". Me gustaría conocer más detalles.`

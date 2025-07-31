@@ -8,6 +8,7 @@ import { useFormState } from "react-dom"
 import { useRef, useEffect, useState } from "react"
 import { sendContactEmail } from "@/app/actions/contact"
 import { toast } from "sonner"
+import { trackContactFormSubmit, trackWhatsAppClick, trackPhoneClick, trackEmailClick } from "@/lib/gtag"
 
 // Componente de Modal de Éxito Elegante
 function SuccessModal({ isOpen, onClose, message }: { isOpen: boolean; onClose: () => void; message: string }) {
@@ -62,13 +63,19 @@ function SuccessModal({ isOpen, onClose, message }: { isOpen: boolean; onClose: 
             </p>
             <div className="flex justify-center gap-4 mt-3">
               <button
-                onClick={() => window.open("https://wa.me/59892078496", "_blank")}
+                onClick={() => {
+                  trackWhatsAppClick()
+                  window.open("https://wa.me/59892078496", "_blank")
+                }}
                 className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105"
               >
                 WhatsApp
               </button>
               <button
-                onClick={() => (window.location.href = "tel:+59892078496")}
+                onClick={() => {
+                  trackPhoneClick()
+                  window.location.href = "tel:+59892078496"
+                }}
                 className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105"
               >
                 Llamar
@@ -95,10 +102,12 @@ export function ContactSection() {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
 
   const handlePhoneClick = () => {
+    trackWhatsAppClick()
     window.open("https://wa.me/59892078496", "_blank")
   }
 
   const handleEmailClick = () => {
+    trackEmailClick()
     const email = "proyectos@mgarquitecturauy.com"
     const subject = "Consulta desde MG Arquitectura"
     const body = "Hola, me interesa conocer más sobre sus servicios arquitectónicos."
@@ -110,6 +119,8 @@ export function ContactSection() {
   // Manejar respuestas del servidor
   useEffect(() => {
     if (state?.success) {
+      // Rastrear envío exitoso del formulario
+      trackContactFormSubmit()
       // Mostrar modal de éxito elegante
       setShowSuccessModal(true)
       formRef.current?.reset() // Limpiar el formulario
@@ -219,7 +230,12 @@ export function ContactSection() {
                   <Mail className="h-6 w-6 text-black mt-1 flex-shrink-0" />
                   <div>
                     <h4 className="font-semibold text-black text-lg">Email</h4>
-                    <p className="text-gray-600">proyectos@mgarquitecturauy.com</p>
+                    <button
+                      onClick={handleEmailClick}
+                      className="text-gray-600 hover:text-black transition-colors underline"
+                    >
+                      proyectos@mgarquitecturauy.com
+                    </button>
                   </div>
                 </div>
               </div>
